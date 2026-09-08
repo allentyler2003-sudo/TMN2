@@ -36,10 +36,16 @@ as a general background with scroll animations. Iterated direction (latest wins)
 - Kinetic masked headline hero, floating logo badge, lenis scroll, scroll reveals, marquee.
 - Services accordion 01–04 with per-service WhatsApp quote links.
 - Gallery rebuilt as editorial cards: numbered chips, alternating frame heights, scroll
-  reveal + settle, monochrome-to-colour hover, sliding WhatsApp caption bar. Luxury painting
-  imagery (representative stock — MOCKED, not client photos).
+  reveal + settle, hover zoom, sliding WhatsApp caption bar. Luxury painting imagery
+  (representative stock — MOCKED, not client photos).
 - Quick-quote composer → prefilled WhatsApp message; floating WhatsApp button.
-- Verified: desktop (1440) + mobile (390) screenshots, no overflow, no blank sections.
+- Auth: customer register/login, admin login (bcrypt, JWT httpOnly cookies, 15-min access +
+  7-day refresh, auto-refresh interceptor, brute-force lockout). Pages /login, /account, /admin.
+- Customer account: chat thread + My jobs + My invoices (read-only).
+- Admin console: chat inbox (unread badges), Jobs tab (create/track/date/status/delete),
+  Notes tab (private notes), Invoices tab (line items, auto numbers TMN-0001…, draft/sent/paid).
+- Verified: desktop (1440) + mobile (390) screenshots, no overflow, no blank sections; full
+  curl verification of auth, chat, jobs, notes, invoices incl. role enforcement (403/401).
 
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.

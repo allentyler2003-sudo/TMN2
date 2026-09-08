@@ -311,6 +311,216 @@ async def admin_stats(admin: dict = Depends(require_admin)):
     }
 
 
+# ---------- admin: jobs, notes & invoices ----------
+
+JOB_STATUSES = {"scheduled", "in progress", "completed"}
+INVOICE_STATUSES = {"draft", "sent", "paid"}
+
+
+def job_public(doc: dict) -> dict:
+    return {
+        "id": str(doc["_id"]),
+        "customer_id": doc["customer_id"],
+        "title": doc["title"],
+        "description": doc.get("description", ""),
+        "scheduled_date": doc.get("scheduled_date", ""),
+        "status": doc.get("status", "scheduled"),
+        "created_at": doc.get("created_at"),
+    }
+
+
+def note_public(doc: dict) -> dict:
+    return {
+        "id": str(doc["_id"]),
+        "customer_id": doc["customer_id"],
+        "text": doc["text"],
+        "created_at": doc["created_at"],
+    }
+
+
+def invoice_public(doc: dict) -> dict:
+    return {
+        "id": str(doc["_id"]),
+        "customer_id": doc["customer_id"],
+        "number": doc["number"],
+        "items": doc.get("items", []),
+        "total": doc.get("total", 0),
+        "due_date": doc.get("due_date", ""),
+        "status": doc.get("status", "draft"),
+        "created_at": doc.get("created_at"),
+    }
+
+
+class JobInput(BaseModel):
+    customer_id: str
+    title: str = Field(min_length=2, max_length=120)
+    description: str = Field(default="", max_length=2000)
+    scheduled_date: str = Field(min_length=10, max_length=10)
+    status: str = "scheduled"
+
+
+class JobUpdateInput(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=2, max_length=120)
+    description: Optional[str] = Field(default=None, max_length=2000)
+    scheduled_date: Optional[str] = None
+    status: Optional[str] = None
+
+
+class NoteInput(BaseModel):
+    customer_id: str
+    text: str = Field(min_length=1, max_length=2000)
+
+
+class InvoiceItemInput(BaseModel):
+    description: str = Field(min_length=1, max_length=200)
+    amount: float = Field(ge=0)
+
+
+class InvoiceInput(BaseModel):
+    customer_id: str
+    items: List[InvoiceItemInput] = Field(min_length=1)
+    due_date: str = Field(min_length=10, max_length=10)
+    status: str = "draft"
+
+
+class InvoiceUpdateInput(BaseModel):
+    status: Optional[str] = None
+    due_date: Optional[str] = None
+
+
+@api_router.get("/admin/jobs")
+async def admin_list_jobs(customer_id: Optional[str] = None, admin: dict = Depends(require_admin)):
+    query = {"customer_id": customer_id} if customer_id else {}
+    docs = await db.jobs.find(query).sort("scheduled_date", -1).to_list(1000)
+    return [job_public(d) for d in docs]
+
+
+@api_router.post("/admin/jobs")
+async def admin_create_job(input: JobInput, admin: dict = Depends(require_admin)):
+    if input.status not in JOB_STATUSES:
+        raise HTTPException(status_code=400, detail="Invalid job status")
+    target = await db.users.find_one({"_id": __import__("bson").ObjectId(input.customer_id)})
+    if not target:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    doc = {
+        "customer_id": input.customer_id,
+        "title": input.title.strip(),
+        "description": input.description.strip(),
+        "scheduled_date": input.scheduled_date,
+        "status": input.status,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = await db.jobs.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return job_public(doc)
+
+
+@api_router.patch("/admin/jobs/{job_id}")
+async def admin_update_job(job_id: str, input: JobUpdateInput, admin: dict = Depends(require_admin)):
+    updates = {k: v for k, v in input.model_dump().items() if v is not None}
+    if "status" in updates and updates["status"] not in JOB_STATUSES:
+        raise HTTPException(status_code=400, detail="Invalid job status")
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.jobs.find_one_and_update(
+        {"_id": __import__("bson").ObjectId(job_id)}, {"$set": updates}, return_document=True
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job_public(result)
+
+
+@api_router.delete("/admin/jobs/{job_id}")
+async def admin_delete_job(job_id: str, admin: dict = Depends(require_admin)):
+    result = await db.jobs.delete_one({"_id": __import__("bson").ObjectId(job_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {"ok": True}
+
+
+@api_router.get("/admin/notes")
+async def admin_list_notes(customer_id: str, admin: dict = Depends(require_admin)):
+    docs = await db.notes.find({"customer_id": customer_id}).sort("created_at", -1).to_list(1000)
+    return [note_public(d) for d in docs]
+
+
+@api_router.post("/admin/notes")
+async def admin_create_note(input: NoteInput, admin: dict = Depends(require_admin)):
+    doc = {
+        "customer_id": input.customer_id,
+        "text": input.text.strip(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = await db.notes.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return note_public(doc)
+
+
+@api_router.delete("/admin/notes/{note_id}")
+async def admin_delete_note(note_id: str, admin: dict = Depends(require_admin)):
+    result = await db.notes.delete_one({"_id": __import__("bson").ObjectId(note_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return {"ok": True}
+
+
+@api_router.get("/admin/invoices")
+async def admin_list_invoices(customer_id: Optional[str] = None, admin: dict = Depends(require_admin)):
+    query = {"customer_id": customer_id} if customer_id else {}
+    docs = await db.invoices.find(query).sort("created_at", -1).to_list(1000)
+    return [invoice_public(d) for d in docs]
+
+
+@api_router.post("/admin/invoices")
+async def admin_create_invoice(input: InvoiceInput, admin: dict = Depends(require_admin)):
+    if input.status not in INVOICE_STATUSES:
+        raise HTTPException(status_code=400, detail="Invalid invoice status")
+    target = await db.users.find_one({"_id": __import__("bson").ObjectId(input.customer_id)})
+    if not target:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    items = [{"description": i.description.strip(), "amount": round(i.amount, 2)} for i in input.items]
+    total = round(sum(i["amount"] for i in items), 2)
+    count = await db.invoices.count_documents({})
+    doc = {
+        "customer_id": input.customer_id,
+        "number": f"TMN-{count + 1:04d}",
+        "items": items,
+        "total": total,
+        "due_date": input.due_date,
+        "status": input.status,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = await db.invoices.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return invoice_public(doc)
+
+
+@api_router.patch("/admin/invoices/{invoice_id}")
+async def admin_update_invoice(invoice_id: str, input: InvoiceUpdateInput, admin: dict = Depends(require_admin)):
+    updates = {k: v for k, v in input.model_dump().items() if v is not None}
+    if "status" in updates and updates["status"] not in INVOICE_STATUSES:
+        raise HTTPException(status_code=400, detail="Invalid invoice status")
+    result = await db.invoices.find_one_and_update(
+        {"_id": __import__("bson").ObjectId(invoice_id)}, {"$set": updates}, return_document=True
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    return invoice_public(result)
+
+
+# ---------- customer: my jobs & invoices ----------
+
+@api_router.get("/my/jobs")
+async def my_jobs(user: dict = Depends(get_current_user)):
+    docs = await db.jobs.find({"customer_id": str(user["_id"])}).sort("scheduled_date", -1).to_list(1000)
+    return [job_public(d) for d in docs]
+
+
+@api_router.get("/my/invoices")
+async def my_invoices(user: dict = Depends(get_current_user)):
+    docs = await db.invoices.find({"customer_id": str(user["_id"])}).sort("created_at", -1).to_list(1000)
+    return [invoice_public(d) for d in docs]
+
+
 # ---------- legacy status routes ----------
 
 @api_router.post("/status", response_model=StatusCheck)

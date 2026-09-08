@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { API_BASE, formatApiError, useAuth } from "@/context/AuthContext";
+import { StatusBadge, fmtDay, fmtMoney } from "@/components/admin/shared";
 
 const fmt = (iso) =>
     new Date(iso).toLocaleString("en-GB", {
@@ -10,15 +11,20 @@ const fmt = (iso) =>
         minute: "2-digit",
     });
 
+const TABS = ["Chat", "My jobs", "My invoices"];
+
 export default function Account() {
     const { user, logout } = useAuth();
+    const [tab, setTab] = useState("Chat");
     const [messages, setMessages] = useState([]);
+    const [jobs, setJobs] = useState([]);
+    const [invoices, setInvoices] = useState([]);
     const [draft, setDraft] = useState("");
     const [sending, setSending] = useState(false);
     const [error, setError] = useState("");
     const bottomRef = useRef(null);
 
-    const load = async () => {
+    const loadMessages = async () => {
         try {
             const { data } = await axios.get(`${API_BASE}/messages`, {
                 withCredentials: true,
@@ -29,9 +35,23 @@ export default function Account() {
         }
     };
 
+    const loadHistory = async () => {
+        try {
+            const [jobsRes, invRes] = await Promise.all([
+                axios.get(`${API_BASE}/my/jobs`, { withCredentials: true }),
+                axios.get(`${API_BASE}/my/invoices`, { withCredentials: true }),
+            ]);
+            setJobs(jobsRes.data);
+            setInvoices(invRes.data);
+        } catch (err) {
+            setError(formatApiError(err.response?.data?.detail));
+        }
+    };
+
     useEffect(() => {
-        load();
-        const id = setInterval(load, 4000);
+        loadMessages();
+        loadHistory();
+        const id = setInterval(loadMessages, 4000);
         return () => clearInterval(id);
     }, []);
 
@@ -124,85 +144,188 @@ export default function Account() {
 
                     <div className="rounded-3xl border border-ink/10 bg-ink p-7 text-paper">
                         <p className="font-display text-xl font-bold uppercase tracking-tight">
-                            Every message reaches us
+                            Your history, one place
                         </p>
                         <p className="mt-3 text-sm leading-relaxed text-paper/75">
-                            Your messages come straight to the TMN inbox and your whole
-                            conversation is saved here as your project history.
+                            Chat with us, see every job we've scheduled for you and check your
+                            invoices — all saved to your account.
                         </p>
                     </div>
                 </div>
 
-                {/* chat */}
-                <div className="flex h-[70vh] flex-col rounded-3xl border border-ink/10 bg-white/70 shadow-[0_24px_70px_rgba(10,10,10,0.10)] backdrop-blur-xl">
-                    <div className="flex items-center justify-between border-b border-ink/10 px-7 py-5">
-                        <span className="font-display text-lg font-bold uppercase tracking-tight">
-                            Chat with TMN
-                        </span>
-                        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink/50">
-                            {messages.length} messages
-                        </span>
-                    </div>
-
-                    <div
-                        data-testid="account-chat-thread"
-                        className="flex-1 space-y-4 overflow-y-auto px-7 py-6"
-                    >
-                        {messages.length === 0 && (
-                            <p className="mx-auto max-w-xs pt-16 text-center text-sm font-medium leading-relaxed text-ink/55">
-                                No messages yet. Say hello or tell us about a job — we'll reply
-                                as fast as we can.
-                            </p>
-                        )}
-                        {messages.map((m) => (
-                            <div
-                                key={m.id}
-                                data-testid={`chat-message-${m.sender}`}
-                                className={`max-w-[80%] rounded-2xl px-5 py-3.5 ${
-                                    m.sender === "customer"
-                                        ? "ml-auto bg-ink text-paper"
-                                        : "bg-white text-ink shadow-[0_8px_24px_rgba(10,10,10,0.08)]"
-                                }`}
-                            >
-                                <p className="whitespace-pre-wrap break-words text-sm font-medium leading-relaxed">
-                                    {m.text}
-                                </p>
-                                <p
-                                    className={`mt-1.5 font-mono text-[9px] uppercase tracking-[0.2em] ${
-                                        m.sender === "customer" ? "text-paper/60" : "text-ink/45"
+                {/* workspace */}
+                <div className="flex flex-col rounded-3xl border border-ink/10 bg-white/70 shadow-[0_24px_70px_rgba(10,10,10,0.10)] backdrop-blur-xl">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 px-7 py-4">
+                        <div className="flex gap-2">
+                            {TABS.map((t) => (
+                                <button
+                                    key={t}
+                                    data-testid={`account-tab-${t.toLowerCase().replace(" ", "-")}`}
+                                    onClick={() => setTab(t)}
+                                    className={`rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] transition-all duration-300 ${
+                                        tab === t
+                                            ? "bg-ink text-paper"
+                                            : "border border-ink/25 text-ink/70 hover:border-ink hover:text-ink"
                                     }`}
                                 >
-                                    {m.sender === "customer" ? "You" : "TMN"} · {fmt(m.created_at)}
-                                </p>
-                            </div>
-                        ))}
-                        <div ref={bottomRef} />
+                                    {t}
+                                </button>
+                            ))}
+                        </div>
+                        {tab === "Chat" && (
+                            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink/50">
+                                {messages.length} messages
+                            </span>
+                        )}
                     </div>
 
-                    {error && (
-                        <p className="px-7 pb-2 text-sm font-medium text-red-700">{error}</p>
+                    {error && <p className="px-7 pt-4 text-sm font-medium text-red-700">{error}</p>}
+
+                    {/* CHAT */}
+                    {tab === "Chat" && (
+                        <>
+                            <div
+                                data-testid="account-chat-thread"
+                                className="h-[60vh] flex-1 space-y-4 overflow-y-auto px-7 py-6"
+                            >
+                                {messages.length === 0 && (
+                                    <p className="mx-auto max-w-xs pt-16 text-center text-sm font-medium leading-relaxed text-ink/55">
+                                        No messages yet. Say hello or tell us about a job — we'll
+                                        reply as fast as we can.
+                                    </p>
+                                )}
+                                {messages.map((m) => (
+                                    <div
+                                        key={m.id}
+                                        data-testid={`chat-message-${m.sender}`}
+                                        className={`max-w-[80%] rounded-2xl px-5 py-3.5 ${
+                                            m.sender === "customer"
+                                                ? "ml-auto bg-ink text-paper"
+                                                : "bg-white text-ink shadow-[0_8px_24px_rgba(10,10,10,0.08)]"
+                                        }`}
+                                    >
+                                        <p className="whitespace-pre-wrap break-words text-sm font-medium leading-relaxed">
+                                            {m.text}
+                                        </p>
+                                        <p
+                                            className={`mt-1.5 font-mono text-[9px] uppercase tracking-[0.2em] ${
+                                                m.sender === "customer" ? "text-paper/60" : "text-ink/45"
+                                            }`}
+                                        >
+                                            {m.sender === "customer" ? "You" : "TMN"} · {fmt(m.created_at)}
+                                        </p>
+                                    </div>
+                                ))}
+                                <div ref={bottomRef} />
+                            </div>
+
+                            <form
+                                onSubmit={send}
+                                className="flex items-center gap-3 border-t border-ink/10 px-7 py-5"
+                            >
+                                <input
+                                    data-testid="account-chat-input"
+                                    value={draft}
+                                    onChange={(e) => setDraft(e.target.value)}
+                                    placeholder="Write a message…"
+                                    className="flex-1 rounded-full border border-ink/20 bg-transparent px-5 py-3.5 text-sm font-medium placeholder:text-ink/40 focus:border-ink focus:outline-none"
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={sending || !draft.trim()}
+                                    data-testid="account-chat-send"
+                                    className="rounded-full bg-ink px-6 py-3.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-paper transition-transform hover:scale-105 active:scale-95 disabled:opacity-40"
+                                >
+                                    Send
+                                </button>
+                            </form>
+                        </>
                     )}
 
-                    <form
-                        onSubmit={send}
-                        className="flex items-center gap-3 border-t border-ink/10 px-7 py-5"
-                    >
-                        <input
-                            data-testid="account-chat-input"
-                            value={draft}
-                            onChange={(e) => setDraft(e.target.value)}
-                            placeholder="Write a message…"
-                            className="flex-1 rounded-full border border-ink/20 bg-transparent px-5 py-3.5 text-sm font-medium placeholder:text-ink/40 focus:border-ink focus:outline-none"
-                        />
-                        <button
-                            type="submit"
-                            disabled={sending || !draft.trim()}
-                            data-testid="account-chat-send"
-                            className="rounded-full bg-ink px-6 py-3.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-paper transition-transform hover:scale-105 active:scale-95 disabled:opacity-40"
+                    {/* JOBS */}
+                    {tab === "My jobs" && (
+                        <div
+                            data-testid="account-jobs-list"
+                            className="h-[60vh] space-y-3 overflow-y-auto px-7 py-6"
                         >
-                            Send
-                        </button>
-                    </form>
+                            {jobs.length === 0 && (
+                                <p className="pt-16 text-center text-sm font-medium text-ink/55">
+                                    No jobs on your file yet. Once we schedule work with you,
+                                    it appears here with dates and progress.
+                                </p>
+                            )}
+                            {jobs.map((job) => (
+                                <div
+                                    key={job.id}
+                                    data-testid={`account-job-card-${job.id}`}
+                                    className="rounded-2xl border border-ink/12 bg-white/80 p-5"
+                                >
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <span className="font-display text-base font-bold uppercase tracking-tight">
+                                            {job.title}
+                                        </span>
+                                        <StatusBadge value={job.status} />
+                                    </div>
+                                    <p className="mt-2 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-ink/55">
+                                        {fmtDay(job.scheduled_date)}
+                                    </p>
+                                    {job.description && (
+                                        <p className="mt-3 text-sm font-medium leading-relaxed text-ink/75">
+                                            {job.description}
+                                        </p>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* INVOICES */}
+                    {tab === "My invoices" && (
+                        <div
+                            data-testid="account-invoices-list"
+                            className="h-[60vh] space-y-3 overflow-y-auto px-7 py-6"
+                        >
+                            {invoices.length === 0 && (
+                                <p className="pt-16 text-center text-sm font-medium text-ink/55">
+                                    No invoices yet. Any invoice we raise for your jobs shows
+                                    here with its status.
+                                </p>
+                            )}
+                            {invoices.map((inv) => (
+                                <div
+                                    key={inv.id}
+                                    data-testid={`account-invoice-card-${inv.id}`}
+                                    className="rounded-2xl border border-ink/12 bg-white/80 p-5"
+                                >
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <span className="font-display text-base font-bold uppercase tracking-tight">
+                                            Invoice {inv.number}
+                                        </span>
+                                        <div className="flex items-center gap-3">
+                                            <span className="font-display text-lg font-bold">
+                                                {fmtMoney(inv.total)}
+                                            </span>
+                                            <StatusBadge value={inv.status} />
+                                        </div>
+                                    </div>
+                                    <p className="mt-2 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-ink/55">
+                                        Due {fmtDay(inv.due_date)}
+                                    </p>
+                                    <ul className="mt-3 space-y-1">
+                                        {inv.items.map((i, j) => (
+                                            <li
+                                                key={j}
+                                                className="flex justify-between text-sm font-medium text-ink/75"
+                                            >
+                                                <span>{i.description}</span>
+                                                <span>{fmtMoney(i.amount)}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </main>
         </div>

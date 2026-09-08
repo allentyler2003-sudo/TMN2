@@ -25,6 +25,26 @@ export function AuthProvider({ children }) {
             .get(`${API}/auth/me`, { withCredentials: true })
             .then(({ data }) => setUser(data))
             .catch(() => setUser(false));
+
+        // auto-refresh: on any 401 (except auth endpoints), retry via refresh cookie
+        const id = axios.interceptors.response.use(null, async (err) => {
+            const cfg = err.config || {};
+            if (
+                err.response?.status === 401 &&
+                !cfg.__retried &&
+                !(cfg.url || "").includes("/auth/")
+            ) {
+                cfg.__retried = true;
+                try {
+                    await axios.post(`${API}/auth/refresh`, {}, { withCredentials: true });
+                    return axios(cfg);
+                } catch (e2) {
+                    setUser(false);
+                }
+            }
+            return Promise.reject(err);
+        });
+        return () => axios.interceptors.response.eject(id);
     }, []);
 
     const login = async (email, password) => {
