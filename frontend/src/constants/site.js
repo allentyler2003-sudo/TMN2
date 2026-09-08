@@ -78,13 +78,13 @@ export const PROJECTS = [
         title: "Drawing room finish",
     },
     {
-        img: "https://images.unsplash.com/photo-1665779736808-047a6bbf43a0?crop=entropy&cs=srgb&fm=jpg&q=85&w=1400",
+        img: "https://images.unsplash.com/photo-1615873968403-89e068629265?crop=entropy&cs=srgb&fm=jpg&q=85&w=1400",
         label: "Decorating — Feature wall",
-        title: "Modern feature wall",
+        title: "Deep green feature wall",
     },
     {
-        img: "https://images.unsplash.com/photo-1523250217488-ab35967e9840?crop=entropy&cs=srgb&fm=jpg&q=85&w=1400",
-        label: "Painting — Craft",
-        title: "Finish & texture",
+        img: "https://images.unsplash.com/photo-1600684388091-627109f3cd60?crop=entropy&cs=srgb&fm=jpg&q=85&w=1400",
+        label: "Painting — Kitchen",
+        title: "Modern kitchen finish",
     },
 ];
