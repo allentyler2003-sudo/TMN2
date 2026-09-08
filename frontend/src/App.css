@@ -38,7 +38,7 @@
     }
 }
 .animate-marquee {
-    animation: marquee-x 46s linear infinite;
+    animation: marquee-x 32s linear infinite;
 }
 .marquee-mask {
     mask-image: linear-gradient(

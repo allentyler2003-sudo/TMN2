@@ -43,7 +43,7 @@ function WorkCard({ project, index }) {
                             whileInView={{ scale: 1.18 }}
                             viewport={{ once: true, amount: 0.15 }}
                             transition={{ duration: 1.4, ease: EASE }}
-                            className="h-full w-full object-cover grayscale transition-[filter,transform] duration-700 ease-out group-hover:scale-[1.24] group-hover:grayscale-0"
+                            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.24]"
                         />
                     </motion.div>
 
@@ -91,8 +91,8 @@ export default function Work() {
                     </div>
                     <FadeUp delay={0.2} className="max-w-sm">
                         <p className="text-base font-medium leading-relaxed text-ink/80">
-                            Hover a photo to see it in colour — the fresh-coat moment is the whole
-                            job. Tap one and tell us what you'd like on WhatsApp.
+                            Every photo is a finish we're proud of. Tap one and tell us what
+                            you'd like on WhatsApp.
                         </p>
                     </FadeUp>
                 </div>

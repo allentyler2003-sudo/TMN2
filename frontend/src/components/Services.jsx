@@ -87,13 +87,13 @@ export default function Services() {
                                                         {s.blurb}
                                                     </p>
                                                     <div>
-                                                        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                        <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                                                             {s.points.map((p) => (
                                                                 <li
                                                                     key={p}
-                                                                    className="flex items-start gap-3 font-mono text-[11px] font-medium uppercase tracking-[0.15em] text-ink/85"
+                                                                    className="flex items-start gap-3 text-[15px] font-medium leading-relaxed text-ink/85"
                                                                 >
-                                                                    <span className="mt-1.5 block h-1 w-1 shrink-0 rounded-full bg-ink/60" />
+                                                                    <span className="mt-[9px] block h-1.5 w-1.5 shrink-0 rounded-full bg-ink/60" />
                                                                     {p}
                                                                 </li>
                                                             ))}
