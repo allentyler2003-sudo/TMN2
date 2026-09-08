@@ -1,0 +1,186 @@
+{
+  "project_name": "TMN Decorating & Maintenance",
+  "app_type": "landing_page",
+  "theme": "monochrome_high_contrast_editorial",
+  "brand_identity": {
+    "name": "TMN Decorating & Maintenance",
+    "description": "UK domestic & commercial painting, decorating and property maintenance specialist.",
+    "monochrome_palette": true,
+    "contact": {
+      "whatsapp_url": "https://wa.me/447736325643",
+      "phone": "07736325643",
+      "phone_display": "+44 7736 325643",
+      "email": "info@Tmndecorating.co.uk",
+      "location": "London & South East UK"
+    }
+  },
+  "typography": {
+    "heading_font": "Cabinet Grotesk, Syne, sans-serif",
+    "body_font": "General Sans, IBM Plex Sans, sans-serif",
+    "mono_font": "Space Mono, monospace",
+    "font_cdn_links": [
+      "https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,900,700,500&f[]=general-sans@400,500,600&display=swap",
+      "https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap"
+    ],
+    "scale": {
+      "hero_title": "text-4xl sm:text-6xl lg:text-7xl font-black tracking-tighter uppercase leading-[0.9]",
+      "section_title": "text-3xl sm:text-5xl font-black tracking-tight uppercase leading-none",
+      "subtitle": "text-lg sm:text-xl font-medium text-neutral-400 tracking-wide",
+      "chapter_number": "font-mono text-xs sm:text-sm tracking-[0.25em] text-neutral-500 uppercase",
+      "body": "text-base sm:text-lg text-neutral-300 leading-relaxed font-normal"
+    },
+    "forbidden_fonts": ["Inter", "Roboto", "Space Grotesk", "Open Sans"]
+  },
+  "colors": {
+    "background_dark": "#0A0A0A",
+    "background_card": "#121212",
+    "background_light_section": "#F8F8F8",
+    "surface_white": "#FFFFFF",
+    "border_muted": "rgba(255, 255, 255, 0.12)",
+    "border_dark_muted": "rgba(0, 0, 0, 0.12)",
+    "text_primary_dark": "#F5F5F5",
+    "text_secondary_dark": "#A3A3A3",
+    "text_primary_light": "#0A0A0A",
+    "text_secondary_light": "#525252",
+    "accent_monochrome": "#FFFFFF",
+    "whatsapp_green": "#25D366"
+  },
+  "video_animations": {
+    "hero_fabric_reveal": {
+      "description": "Cinematic white fabric/canvas reveal loop with TMN logo centered inside the white circle, animated with forward playback and continuous smooth rewind loop.",
+      "implementation": "Use HTML5 video canvas or SVG mask + CSS keyframe / Framer Motion scale-pulse loop simulating forward and reverse motion with TMN SVG logo embedded in the central white circle.",
+      "loop_behavior": "Forward playback (0s - 3s) -> Ping-pong rewind (3s - 0s) infinitely with seamless transition"
+    },
+    "background_holo_ripple": {
+      "description": "Full white holo-ripple / liquid canvas video loop background layer behind About, Craftsmanship, and Process sections.",
+      "implementation": "Positioned fixed/absolute behind content with mix-blend-mode or opacity mask (opacity-15 to opacity-30), triggered by scroll position using Framer Motion scroll progress."
+    }
+  },
+  "services_chapters": [
+    {
+      "id": "01",
+      "title": "Interior Painting & Finishing",
+      "tagline": "Precision spray finishing, micro-cement, woodwork lacquering & heritage wall restoration.",
+      "details": ["Airless Spray & Hand Brush", "Dustless Sanding Technology", "Farrow & Ball / Little Greene Specialists", "Coving, Skirting & Architectural Trim"]
+    },
+    {
+      "id": "02",
+      "title": "Exterior Painting & Decorating",
+      "tagline": "Weatherproof masonry coatings, timber restoration, sash window repair & facade revitalisation.",
+      "details": ["Siloxane Breathable Masonry Paint", "Sash Window Restorations", "Scaffolding & Access Management", "10-Year Weather-Shield Warranties"]
+    },
+    {
+      "id": "03",
+      "title": "Commercial Painting & Fitouts",
+      "tagline": "High-durability commercial coatings for offices, retail, hospitality & industrial units.",
+      "details": ["Out-of-Hours Night Shifts", "Intumescent Fire-Retardant Coatings", "Anti-Microbial Wall Finishes", "Health & Safety / RAMS Compliant"]
+    },
+    {
+      "id": "04",
+      "title": "Property Maintenance & Repairs",
+      "tagline": "Complete post-tenant refurbishments, plaster repairs, carpentry touchups & ongoing building upkeep.",
+      "details": ["Plasterboard Repair & Skimming", "Joinery & Trim Replacement", "Guttering & Facia Care", "Scheduled Preventive Maintenance"]
+    }
+  ],
+  "image_urls": {
+    "hero_bg": "https://images.unsplash.com/photo-1665779736808-047a6bbf43a0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwzfHxhcmNoaXRlY3R1cmUlMjBibGFjayUyMHdoaXRlJTIwbWluaW1hbGlzdCUyMHBhaW50JTIwdGV4dHVyZSUyMHdhbGwlMjBkZXRhaWwlMjBjcmFmdHNtYW58ZW58MHx8fHwxNzg4ODQ2NzUzfDA&ixlib=rb-4.1.0&q=85",
+    "interior_gallery_1": "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBpbnRlcmlvciUyMHBhaW50aW5nJTIwcGFpbnRlciUyMGRlY29yYXRpbmclMjB3YWxsJTIwZGVzaWduJTIwaG91c2V8ZW58MHx8fHwxNzg4ODQ2NzM3fDA&ixlib=rb-4.1.0&q=85",
+    "interior_gallery_2": "https://images.unsplash.com/photo-1638885930125-85350348d266?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwyfHxsdXh1cnklMjBpbnRlcmlvciUyMHBhaW50aW5nJTIwcGFpbnRlciUyMGRlY29yYXRpbmclMjB3YWxsJTIwZGVzaWduJTIwaG91c2V8ZW58MHx8fHwxNzg4ODQ2NzM3fDA&ixlib=rb-4.1.0&q=85",
+    "exterior_work": "https://images.unsplash.com/photo-1613844044163-1ad2f2d0b152?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njl8MHwxfHNlYXJjaHw0fHxjb21tZXJjaWFsJTIwcGFpbnRpbmclMjBidWlsZGluZyUyMGV4dGVyaW9yJTIwZGVjb3JhdG9yJTIwd29ya2VyJTIwbWFpbnRlbmFuY2V8ZW58MHx8fHwxNzg4ODQ2NzM3fDA&ixlib=rb-4.1.0&q=85",
+    "painter_craftsman": "https://images.unsplash.com/photo-1742900280861-32bed068938b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njl8MHwxfHNlYXJjaHwzfHxjb21tZXJjaWFsJTIwcGFpbnRpbmclMjBidWlsZGluZyUyMGV4dGVyaW9yJTIwZGVjb3JhdG9yJTIwd29ya2VyJTIwbWFpbnRlbmFuY2V8ZW58MHx8fHwxNzg4ODQ2NzM3fDA&ixlib=rb-4.1.0&q=85",
+    "paint_texture_detail": "https://images.unsplash.com/photo-1523250217488-ab35967e9840?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwxfHxhcmNoaXRlY3R1cmUlMjBibGFjayUyMHdoaXRlJTIwbWluaW1hbGlzdCUyMHBhaW50JTIwdGV4dHVyZSUyMHdhbGwlMjBkZXRhaWwlMjBjcmFmdHNtYW58ZW58MHx8fHwxNzg4ODQ2NzUyfDA&ixlib=rb-4.1.0&q=85"
+  },
+  "interactive_components": [
+    {
+      "name": "CustomCursor",
+      "description": "Magnetic custom cursor dot and trailing circle that expands over interactive cards with 'VIEW', 'DRAG', or 'CONTACT' label."
+    },
+    {
+      "name": "HeroVideoReveal",
+      "description": "Interactive video canvas with TMN logo in white circle, forward/rewind control, sound toggle effect, and kinetic masked headline."
+    },
+    {
+      "name": "EditorialMarquee",
+      "description": "Infinite slow drifting monochrome marquee displaying services and trade standards."
+    },
+    {
+      "name": "ServiceChaptersAccordion",
+      "description": "Numbered 01-04 chapter section with expandable specifications, technical details, and direct quote trigger."
+    },
+    {
+      "name": "BeforeAfterComparisonSlider",
+      "description": "Interactive horizontal drag slider comparing raw weathered surface vs flawless TMN monochrome spray finish."
+    },
+    {
+      "name": "InteractiveQuoteCalculator",
+      "description": "Drawer/Modal calculator letting clients pick Domestic/Commercial, Square Footage slider, Finish level, and generates instant estimate with direct WhatsApp share button."
+    },
+    {
+      "name": "HoloBackgroundSection",
+      "description": "Scroll-driven section with the white holo-ripple video background layer and parallax trade metrics."
+    },
+    {
+      "name": "ContactHub",
+      "description": "Direct action buttons for WhatsApp (wa.me/447736325643), Phone (07736325643), and Email (info@Tmndecorating.co.uk) plus interactive quick-message form."
+    }
+  ],
+  "accessibility_and_testing": {
+    "data_testid_rules": "All buttons, links, inputs, sliders, tabs, modals, and interactive items MUST include descriptive kebab-case data-testid attributes.",
+    "required_test_ids": [
+      "nav-brand-logo",
+      "nav-link-services",
+      "nav-link-work",
+      "nav-link-about",
+      "nav-link-estimate",
+      "nav-link-contact",
+      "nav-whatsapp-button",
+      "hero-cta-quote-button",
+      "hero-cta-whatsapp-button",
+      "video-loop-toggle-button",
+      "service-chapter-01-toggle",
+      "service-chapter-02-toggle",
+      "service-chapter-03-toggle",
+      "service-chapter-04-toggle",
+      "work-filter-all",
+      "work-filter-interior",
+      "work-filter-exterior",
+      "work-filter-commercial",
+      "before-after-slider",
+      "quote-calculator-open-button",
+      "quote-calculator-type-domestic",
+      "quote-calculator-type-commercial",
+      "quote-calculator-sqm-slider",
+      "quote-calculator-whatsapp-submit",
+      "contact-form-name-input",
+      "contact-form-email-input",
+      "contact-form-phone-input",
+      "contact-form-service-select",
+      "contact-form-submit-button",
+      "contact-whatsapp-direct-link",
+      "contact-phone-direct-link",
+      "contact-email-direct-link"
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Build a single-page React marketing application with Awwwards Site-of-the-Day craftsmanship.",
+    "Strictly follow the user's explicit choices: Monochrome (black/white/grey) palette matching TMN logo.",
+    "Implement the hero fabric reveal loop video with the TMN logo sitting in the central white circle, looping forward and rewinding continuously.",
+    "Implement the second full-white holo-ripple video loop as a background for the About / Approach section with scroll-driven animations.",
+    "Ensure all contact points map strictly to WhatsApp (https://wa.me/447736325643), Phone (07736325643), and Email (info@Tmndecorating.co.uk).",
+    "Include an interactive quote/estimate calculator that generates instant estimates and offers a direct WhatsApp submission button.",
+    "Use Framer Motion for smooth entrances, staggered reveals, hover states, and chapter accordions.",
+    "Include interactive before/after image slider, lightbox gallery filters, and custom magnetic cursor.",
+    "Add 'data-testid' to every interactive button, input, slider, tab, and link."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur) on sticky navbars and modals.",
+    "You MUST NOT apply universal transition (transition: all). Always specify explicit properties.",
+    "You MUST NOT center align the app container text globally.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "All interactive and key informational elements MUST include a data-testid attribute."
+  ]
+}
