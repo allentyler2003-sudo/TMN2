@@ -106,11 +106,34 @@
     transform-origin: left;
 }
 
+/* ---------- holo fallback (if video autoplay is blocked) ---------- */
+.holo-fallback {
+    background: linear-gradient(
+        120deg,
+        #e9e7f9,
+        #d9f0ee,
+        #f9e9e2,
+        #e3ecf9,
+        #efe6f6,
+        #e9e7f9
+    );
+    background-size: 300% 300%;
+    animation: holo-drift 18s ease-in-out infinite;
+}
+@keyframes holo-drift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .animate-marquee {
         animation: none;
     }
     .grain::before {
+        animation: none;
+    }
+    .holo-fallback {
         animation: none;
     }
 }

@@ -1,4 +1,4 @@
-import { Component, useEffect, useRef } from "react";
+import { Component, useEffect, useRef, useState } from "react";
 import Lenis from "lenis";
 import "@/App.css";
 import Cursor from "@/components/Cursor";
@@ -36,31 +36,60 @@ class ErrorBoundary extends Component {
 
 function HoloBackground() {
     const videoRef = useRef(null);
+    const [dead, setDead] = useState(false);
 
     useEffect(() => {
         const v = videoRef.current;
         if (!v) return;
-        const tryPlay = () => v.play().catch(() => {});
+        const tryPlay = () => {
+            if (v.paused) v.play().catch(() => {});
+        };
+        const onCanPlay = () => {
+            if (v.readyState >= 2) setDead(false);
+            tryPlay();
+        };
+        const onError = () => setDead(true);
+        const kick = () => tryPlay();
+        v.addEventListener("canplay", onCanPlay);
+        v.addEventListener("error", onError, true);
+        window.addEventListener("pointerdown", kick, { passive: true });
+        window.addEventListener("wheel", kick, { passive: true });
+        window.addEventListener("touchstart", kick, { passive: true });
+        const probe = setInterval(() => {
+            if (v.readyState === 0 && v.networkState === 3) setDead(true);
+            else tryPlay();
+        }, 3000);
         tryPlay();
-        v.addEventListener("canplay", tryPlay);
-        return () => v.removeEventListener("canplay", tryPlay);
+        return () => {
+            v.removeEventListener("canplay", onCanPlay);
+            v.removeEventListener("error", onError, true);
+            window.removeEventListener("pointerdown", kick);
+            window.removeEventListener("wheel", kick);
+            window.removeEventListener("touchstart", kick);
+            clearInterval(probe);
+        };
     }, []);
 
     return (
-        <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
+        <div
+            className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+            aria-hidden="true"
+        >
+            {dead && <div className="holo-fallback absolute inset-0" />}
             <video
                 ref={videoRef}
                 data-testid="holo-background-video"
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover saturate-[1.25] contrast-[1.05]"
                 muted
                 loop
                 playsInline
                 preload="auto"
+                poster="/videos/bg-poster.jpg"
             >
                 <source src="/videos/bg-hq.webm" type="video/webm" />
                 <source src="/videos/bg-hq.mp4" type="video/mp4" />
             </video>
-            <div className="absolute inset-0 bg-paper/70" />
+            <div className="absolute inset-0 bg-paper/55" />
         </div>
     );
 }
