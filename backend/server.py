@@ -521,6 +521,46 @@ async def my_invoices(user: dict = Depends(get_current_user)):
     return [invoice_public(d) for d in docs]
 
 
+# ---------- admin: full client records & rename ----------
+
+class CustomerUpdateInput(BaseModel):
+    name: str = Field(min_length=2, max_length=80)
+
+
+@api_router.patch("/admin/customers/{customer_id}")
+async def admin_update_customer(customer_id: str, input: CustomerUpdateInput, admin: dict = Depends(require_admin)):
+    result = await db.users.find_one_and_update(
+        {"_id": __import__("bson").ObjectId(customer_id)},
+        {"$set": {"name": input.name.strip()}},
+        return_document=True,
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    return public_user(result)
+
+
+@api_router.get("/admin/clients")
+async def admin_clients(admin: dict = Depends(require_admin)):
+    customers = await db.users.find({"role": "customer"}).sort("created_at", -1).to_list(1000)
+    out = []
+    for c in customers:
+        cid = str(c["_id"])
+        jobs = [job_public(d) for d in await db.jobs.find({"customer_id": cid}).sort("scheduled_date", -1).to_list(500)]
+        notes = [note_public(d) for d in await db.notes.find({"customer_id": cid}).sort("created_at", -1).to_list(500)]
+        invoices = [invoice_public(d) for d in await db.invoices.find({"customer_id": cid}).sort("created_at", -1).to_list(500)]
+        messages = [msg_public(d) for d in await db.messages.find({"customer_id": cid}).sort("created_at", 1).to_list(2000)]
+        out.append({
+            **public_user(c),
+            "jobs": jobs,
+            "notes": notes,
+            "invoices": invoices,
+            "messages": messages,
+            "total_invoiced": round(sum(i["total"] for i in invoices if i["status"] != "draft"), 2),
+            "total_unpaid": round(sum(i["total"] for i in invoices if i["status"] != "paid"), 2),
+        })
+    return out
+
+
 # ---------- legacy status routes ----------
 
 @api_router.post("/status", response_model=StatusCheck)
