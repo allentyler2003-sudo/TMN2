@@ -43,6 +43,3 @@ as a general background with scroll animations. Iterated direction (latest wins)
 
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.
-- P1: Real service-area/location copy; testimonial section from real clients.
-- P1: SEO pass (per-page meta, OpenGraph, sitemap) on request.
-- P2: Optional contact form with email delivery (Resend) if client wants inbox enquiries.

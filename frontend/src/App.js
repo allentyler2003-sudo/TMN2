@@ -1,5 +1,7 @@
 import { Component, useEffect, useRef, useState } from "react";
 import Lenis from "lenis";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import "@/App.css";
 import Cursor from "@/components/Cursor";
 import Nav from "@/components/Nav";
@@ -11,6 +13,9 @@ import About from "@/components/About";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
+import Login from "@/pages/Login";
+import Account from "@/pages/Account";
+import Admin from "@/pages/Admin";
 
 class ErrorBoundary extends Component {
     constructor(props) {
@@ -94,7 +99,15 @@ function HoloBackground() {
     );
 }
 
-function App() {
+function ScrollToTop() {
+    const { pathname } = useLocation();
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, [pathname]);
+    return null;
+}
+
+function Site() {
     useEffect(() => {
         const lenis = new Lenis({ lerp: 0.09, smoothWheel: true });
         window.__lenis = lenis;
@@ -112,27 +125,72 @@ function App() {
     }, []);
 
     return (
-        <ErrorBoundary>
-            <div
-                data-testid="site-root"
-                className="grain relative min-h-screen bg-paper font-body text-ink antialiased"
-            >
-                <HoloBackground />
-                <div className="relative z-10">
-                    <Cursor />
-                    <Nav />
-                    <main>
-                        <Hero />
-                        <Marquee />
-                        <Services />
-                        <Work />
-                        <About />
-                        <Contact />
-                    </main>
-                    <Footer />
-                    <FloatingWhatsApp />
-                </div>
+        <>
+            <HoloBackground />
+            <div className="relative z-10">
+                <Cursor />
+                <Nav />
+                <main>
+                    <Hero />
+                    <Marquee />
+                    <Services />
+                    <Work />
+                    <About />
+                    <Contact />
+                </main>
+                <Footer />
+                <FloatingWhatsApp />
             </div>
+        </>
+    );
+}
+
+function Protected({ role, children }) {
+    const { user } = useAuth();
+    if (user === null) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-paper">
+                <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-ink/60">
+                    Loading…
+                </p>
+            </div>
+        );
+    }
+    if (!user) return <Navigate to="/login" replace />;
+    if (role === "admin" && user.role !== "admin") return <Navigate to="/account" replace />;
+    if (role === "customer" && user.role === "admin") return <Navigate to="/admin" replace />;
+    return children;
+}
+
+function App() {
+    return (
+        <ErrorBoundary>
+            <AuthProvider>
+                <BrowserRouter>
+                    <ScrollToTop />
+                    <Routes>
+                        <Route path="/" element={<Site />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route
+                            path="/account"
+                            element={
+                                <Protected role="customer">
+                                    <Account />
+                                </Protected>
+                            }
+                        />
+                        <Route
+                            path="/admin"
+                            element={
+                                <Protected role="admin">
+                                    <Admin />
+                                </Protected>
+                            }
+                        />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                </BrowserRouter>
+            </AuthProvider>
         </ErrorBoundary>
     );
 }

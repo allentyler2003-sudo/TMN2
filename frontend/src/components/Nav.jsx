@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/context/AuthContext";
 import { waLink } from "@/constants/site";
 import { EASE } from "@/components/Reveal";
 
@@ -18,6 +19,7 @@ export const scrollToHash = (hash) => {
 };
 
 export default function Nav() {
+    const { user } = useAuth();
     const [scrolled, setScrolled] = useState(false);
 
     useEffect(() => {
@@ -32,6 +34,12 @@ export default function Nav() {
         scrollToHash(hash);
     };
 
+    const accountHref = user
+        ? user.role === "admin"
+            ? "/admin"
+            : "/account"
+        : "/login";
+
     return (
         <motion.header
             initial={{ y: -90, opacity: 0 }}
@@ -43,7 +51,7 @@ export default function Nav() {
         >
             <nav className="mx-auto flex h-24 max-w-[1600px] items-center justify-between px-5 sm:px-8 lg:px-12">
                 <a
-                    href="#top"
+                    href="/"
                     data-testid="nav-brand-logo"
                     onClick={(e) => go(e, "#top")}
                     className="flex items-center gap-3"
@@ -72,16 +80,29 @@ export default function Nav() {
                     ))}
                 </div>
 
-                <a
-                    href={waLink("Hi TMN Decorating & Maintenance — I'd like a quote.")}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-testid="nav-whatsapp-button"
-                    className="group flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-paper transition-transform duration-300 hover:scale-[1.04] active:scale-95"
-                >
-                    Get a quote
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-paper transition-transform duration-300 group-hover:scale-150" />
-                </a>
+                <div className="flex items-center gap-5">
+                    <a
+                        href={accountHref}
+                        data-testid={user ? "nav-account-link" : "nav-login-link"}
+                        className="link-sweep font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-ink/70 transition-colors hover:text-ink"
+                    >
+                        {user
+                            ? user.role === "admin"
+                                ? "Admin"
+                                : "My account"
+                            : "Customer login"}
+                    </a>
+                    <a
+                        href={waLink("Hi TMN Decorating & Maintenance — I'd like a quote.")}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-testid="nav-whatsapp-button"
+                        className="group flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-paper transition-transform duration-300 hover:scale-[1.04] active:scale-95"
+                    >
+                        Get a quote
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-paper transition-transform duration-300 group-hover:scale-150" />
+                    </a>
+                </div>
             </nav>
         </motion.header>
     );
