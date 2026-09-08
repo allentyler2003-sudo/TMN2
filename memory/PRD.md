@@ -41,11 +41,17 @@ as a general background with scroll animations. Iterated direction (latest wins)
 - Quick-quote composer → prefilled WhatsApp message; floating WhatsApp button.
 - Auth: customer register/login, admin login (bcrypt, JWT httpOnly cookies, 15-min access +
   7-day refresh, auto-refresh interceptor, brute-force lockout). Pages /login, /account, /admin.
-- Customer account: chat thread + My jobs + My invoices (read-only).
+- Customer account: chat thread + My jobs + My invoices (+ PDF download, Stripe pay button).
 - Admin console: chat inbox (unread badges), Jobs tab (create/track/date/status/delete),
-  Notes tab (private notes), Invoices tab (line items, auto numbers TMN-0001…, draft/sent/paid).
+  Notes tab (private notes), Invoices tab (line items, auto numbers TMN-0001…, draft/sent/paid,
+  PDF download), rename customers, Client records view (searchable full history, CSV export).
+- Payments: Stripe Checkout (claimable sandbox, GBP) on "sent" invoices; webhook +
+  status-polling mark invoices paid; tax mode = Stripe calculates only (calc_only).
+- Email: Resend notification to owner on new message / new registration / invoice paid —
+  activates automatically once RESEND_API_KEY is configured on the platform.
 - Verified: desktop (1440) + mobile (390) screenshots, no overflow, no blank sections; full
-  curl verification of auth, chat, jobs, notes, invoices incl. role enforcement (403/401).
+  curl verification of auth, chat, jobs, notes, invoices incl. role enforcement (403/401);
+  Stripe checkout session + webhook → invoice paid verified end-to-end.
 
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.

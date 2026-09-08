@@ -6,6 +6,9 @@ import uuid
 import bcrypt
 import jwt
 import logging
+import stripe
+import resend
+import asyncio
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
@@ -175,6 +178,10 @@ async def register(input: RegisterInput, response: Response):
     result = await db.users.insert_one(doc)
     doc["_id"] = result.inserted_id
     set_auth_cookies(response, str(doc["_id"]), email)
+    await send_owner_email(
+        "New customer registered — TMN website",
+        f"<p><b>{doc['name']}</b> ({doc['email']}) just created an account on your website.</p>",
+    )
     return public_user(doc)
 
 
@@ -253,6 +260,11 @@ async def send_message(input: MessageInput, user: dict = Depends(get_current_use
     doc = msg_doc(str(user["_id"]), "customer", input.text)
     result = await db.messages.insert_one(doc)
     doc["_id"] = result.inserted_id
+    await send_owner_email(
+        f"New message from {user.get('name', 'a customer')} — TMN website",
+        f"<p><b>{user.get('name')}</b> ({user.get('email')}) sent you a message:</p>"
+        f"<p style='white-space:pre-wrap'>{input.text}</p>",
+    )
     return msg_public(doc)
 
 
@@ -559,6 +571,165 @@ async def admin_clients(admin: dict = Depends(require_admin)):
             "total_unpaid": round(sum(i["total"] for i in invoices if i["status"] != "paid"), 2),
         })
     return out
+
+
+# ---------- stripe payments & email notifications ----------
+
+stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
+SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+
+
+async def send_owner_email(subject: str, html: str):
+    key = os.environ.get("RESEND_API_KEY")
+    if not key:
+        logger.info("RESEND_API_KEY not set — email skipped: %s", subject)
+        return
+    try:
+        resend.api_key = key
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [os.environ.get("ADMIN_EMAIL", "admin@tmndecorating.co.uk")],
+            "subject": subject,
+            "html": html,
+        }
+        await asyncio.to_thread(resend.Emails.send, params)
+    except Exception as e:
+        logger.error("Email send failed: %s", e)
+
+
+async def _mark_invoice_paid(session_id: str, record: dict, stripe_session=None):
+    updated = await db.payment_transactions.find_one_and_update(
+        {"session_id": session_id, "payment_status": {"$ne": "paid"}},
+        {"$set": {"status": "completed", "payment_status": "paid",
+                  "stripe_payment_intent_id": getattr(stripe_session, "payment_intent", None),
+                  "updated_at": datetime.now(timezone.utc)}},
+    )
+    if not updated:
+        return
+    invoice_id = record.get("invoice_id")
+    if invoice_id:
+        await db.invoices.update_one(
+            {"_id": __import__("bson").ObjectId(invoice_id)},
+            {"$set": {"status": "paid"}},
+        )
+        inv = await db.invoices.find_one({"_id": __import__("bson").ObjectId(invoice_id)})
+        cust = await db.users.find_one({"_id": __import__("bson").ObjectId(record.get("customer_id"))})
+        if inv and cust:
+            await send_owner_email(
+                f"Invoice {inv['number']} paid — {fmtMoneyLite(inv['total'])}",
+                f"<p>Invoice <b>{inv['number']}</b> from {cust.get('name')} was paid: <b>{fmtMoneyLite(inv['total'])}</b>.</p>",
+            )
+
+
+def fmtMoneyLite(n):
+    return f"£{n:,.2f}"
+
+
+@api_router.post("/invoices/{invoice_id}/checkout")
+async def invoice_checkout(invoice_id: str, request: Request, user: dict = Depends(get_current_user)):
+    invoice = await db.invoices.find_one({"_id": __import__("bson").ObjectId(invoice_id)})
+    if not invoice or invoice["customer_id"] != str(user["_id"]):
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    if invoice.get("status") == "paid":
+        raise HTTPException(status_code=400, detail="This invoice is already paid")
+    if invoice.get("status") == "draft":
+        raise HTTPException(status_code=400, detail="This invoice is not payable yet")
+
+    body = await request.json()
+    origin = body.get("origin_url") or os.environ.get("FRONTEND_URL", "").rstrip("/")
+
+    product = None
+    for p in stripe.Product.list(active=True).auto_paging_iter():
+        if p.to_dict().get("metadata", {}).get("emergent_product_id") == "tmn_invoice_payment":
+            product = p
+            break
+    if product is None:
+        product = stripe.Product.create(
+            name="TMN invoice payment",
+            metadata={"managed_by": "emergent", "emergent_product_id": "tmn_invoice_payment"},
+        )
+    price = stripe.Price.create(
+        product=product.id,
+        unit_amount=round(invoice["total"] * 100),
+        currency="gbp",
+    )
+
+    kwargs = dict(
+        line_items=[{"price": price.id, "quantity": 1}],
+        mode="payment",
+        success_url=f"{origin}/account?payment=success&session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{origin}/account?payment=cancelled",
+        metadata={"invoice_id": invoice_id, "customer_id": str(user["_id"])},
+    )
+    try:
+        session = stripe.checkout.Session.create(automatic_tax={"enabled": True}, **kwargs)
+    except stripe.error.StripeError:
+        session = stripe.checkout.Session.create(**kwargs)
+
+    await db.payment_transactions.insert_one({
+        "session_id": session.id,
+        "invoice_id": invoice_id,
+        "customer_id": str(user["_id"]),
+        "amount": invoice["total"],
+        "currency": "gbp",
+        "status": "initiated",
+        "payment_status": "pending",
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
+    })
+    return {"checkout_url": session.url, "session_id": session.id}
+
+
+@api_router.get("/payments/status/{session_id}")
+async def payment_status(session_id: str):
+    record = await db.payment_transactions.find_one({"session_id": session_id})
+    if not record:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    if record.get("payment_status") != "paid":
+        try:
+            s = stripe.checkout.Session.retrieve(session_id)
+            if s.payment_status == "paid" or s.status == "complete":
+                await _mark_invoice_paid(session_id, record, s)
+                record = await db.payment_transactions.find_one({"session_id": session_id})
+        except stripe.error.StripeError:
+            pass
+    return {
+        "session_id": record["session_id"],
+        "status": record["status"],
+        "payment_status": record["payment_status"],
+    }
+
+
+@api_router.post("/stripe/webhook")
+async def stripe_webhook(request: Request):
+    payload = await request.body()
+    sig = request.headers.get("stripe-signature", "")
+    try:
+        event = stripe.Webhook.construct_event(payload, sig, os.environ.get("STRIPE_WEBHOOK_SECRET", ""))
+    except (stripe.error.SignatureVerificationError, ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid signature")
+    obj, t = event["data"]["object"], event["type"]
+    if t == "checkout.session.completed":
+        record = await db.payment_transactions.find_one({"session_id": obj["id"]})
+        if record:
+            await _mark_invoice_paid(obj["id"], record, None)
+        else:
+            await db.payment_transactions.update_one(
+                {"session_id": obj["id"], "payment_status": {"$ne": "paid"}},
+                {"$set": {"status": "completed", "payment_status": obj.get("payment_status", "paid"),
+                          "updated_at": datetime.now(timezone.utc)}},
+            )
+    elif t == "checkout.session.async_payment_failed":
+        await db.payment_transactions.update_one(
+            {"session_id": obj["id"]},
+            {"$set": {"status": "failed", "payment_status": "failed", "updated_at": datetime.now(timezone.utc)}},
+        )
+    elif t == "checkout.session.expired":
+        await db.payment_transactions.update_one(
+            {"session_id": obj["id"]},
+            {"$set": {"status": "expired", "payment_status": "expired", "updated_at": datetime.now(timezone.utc)}},
+        )
+    return {"status": "ok"}
 
 
 # ---------- legacy status routes ----------

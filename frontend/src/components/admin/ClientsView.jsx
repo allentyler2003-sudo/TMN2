@@ -234,6 +234,61 @@ export default function ClientsView() {
         load();
     }, []);
 
+    const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+
+    const exportCsv = () => {
+        const rows = [];
+        rows.push("CLIENTS");
+        rows.push("Name,Email,Joined,Jobs,Total invoiced GBP,Unpaid GBP");
+        clients.forEach((c) =>
+            rows.push(
+                [
+                    esc(c.name),
+                    esc(c.email),
+                    esc(c.created_at?.slice(0, 10)),
+                    c.jobs.length,
+                    c.total_invoiced,
+                    c.total_unpaid,
+                ].join(",")
+            )
+        );
+        rows.push("");
+        rows.push("JOBS");
+        rows.push("Client,Title,Scheduled,Status,Description");
+        clients.forEach((c) =>
+            c.jobs.forEach((j) =>
+                rows.push(
+                    [esc(c.name), esc(j.title), esc(j.scheduled_date), esc(j.status), esc(j.description)].join(",")
+                )
+            )
+        );
+        rows.push("");
+        rows.push("INVOICES");
+        rows.push("Client,Number,Due,Status,Line item,Amount GBP");
+        clients.forEach((c) =>
+            c.invoices.forEach((i) =>
+                i.items.forEach((it) =>
+                    rows.push([esc(c.name), esc(i.number), esc(i.due_date), esc(i.status), esc(it.description), it.amount].join(","))
+                )
+            )
+        );
+        rows.push("");
+        rows.push("MESSAGES");
+        rows.push("Client,Sender,Date,Text");
+        clients.forEach((c) =>
+            c.messages.forEach((m) =>
+                rows.push([esc(c.name), esc(m.sender), esc(m.created_at), esc(m.text)].join(","))
+            )
+        );
+        const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `tmn-clients-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     const q = search.trim().toLowerCase();
     const matches = (c) => {
         if (!q) return true;
@@ -267,6 +322,14 @@ export default function ClientsView() {
                 <span className="font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-ink/50">
                     {visible.length} of {clients.length} shown
                 </span>
+                <button
+                    data-testid="admin-export-csv"
+                    onClick={exportCsv}
+                    disabled={clients.length === 0}
+                    className="rounded-full bg-ink px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-paper transition-transform hover:scale-105 active:scale-95 disabled:opacity-40"
+                >
+                    Export CSV
+                </button>
             </div>
 
             {error && <p className="mb-4 text-sm font-medium text-red-700">{error}</p>}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { API_BASE, formatApiError, useAuth } from "@/context/AuthContext";
 import { StatusBadge, fmtDay, fmtMoney } from "@/components/admin/shared";
+import { downloadInvoicePdf } from "@/utils/invoicePdf";
 
 const fmt = (iso) =>
     new Date(iso).toLocaleString("en-GB", {
@@ -21,7 +22,9 @@ export default function Account() {
     const [invoices, setInvoices] = useState([]);
     const [draft, setDraft] = useState("");
     const [sending, setSending] = useState(false);
+    const [paying, setPaying] = useState(null);
     const [error, setError] = useState("");
+    const [banner, setBanner] = useState(null);
     const bottomRef = useRef(null);
 
     const loadMessages = async () => {
@@ -47,6 +50,44 @@ export default function Account() {
             setError(formatApiError(err.response?.data?.detail));
         }
     };
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const payment = params.get("payment");
+        const sessionId = params.get("session_id");
+        if (payment === "success" && sessionId) {
+            setBanner("pending");
+            let tries = 0;
+            const poll = setInterval(async () => {
+                tries += 1;
+                try {
+                    const { data } = await axios.get(
+                        `${API_BASE}/payments/status/${sessionId}`,
+                        { withCredentials: true }
+                    );
+                    if (data.payment_status === "paid") {
+                        clearInterval(poll);
+                        setBanner("success");
+                        loadHistory();
+                    } else if (tries > 8) {
+                        clearInterval(poll);
+                        setBanner("pending");
+                    }
+                } catch (e) {
+                    if (tries > 8) {
+                        clearInterval(poll);
+                        setBanner("pending");
+                    }
+                }
+            }, 2000);
+            window.history.replaceState({}, "", "/account");
+            return () => clearInterval(poll);
+        }
+        if (payment === "cancelled") {
+            setBanner("cancelled");
+            window.history.replaceState({}, "", "/account");
+        }
+    }, []);
 
     useEffect(() => {
         loadMessages();
@@ -76,6 +117,22 @@ export default function Account() {
             setError(formatApiError(err.response?.data?.detail));
         } finally {
             setSending(false);
+        }
+    };
+
+    const pay = async (invoice) => {
+        setPaying(invoice.id);
+        setError("");
+        try {
+            const { data } = await axios.post(
+                `${API_BASE}/invoices/${invoice.id}/checkout`,
+                { origin_url: window.location.origin },
+                { withCredentials: true }
+            );
+            window.location.href = data.checkout_url;
+        } catch (err) {
+            setError(formatApiError(err.response?.data?.detail));
+            setPaying(null);
         }
     };
 
@@ -147,8 +204,8 @@ export default function Account() {
                             Your history, one place
                         </p>
                         <p className="mt-3 text-sm leading-relaxed text-paper/75">
-                            Chat with us, see every job we've scheduled for you and check your
-                            invoices — all saved to your account.
+                            Chat with us, see every job we've scheduled for you, download your
+                            invoices and pay them online — all saved to your account.
                         </p>
                     </div>
                 </div>
@@ -178,6 +235,25 @@ export default function Account() {
                             </span>
                         )}
                     </div>
+
+                    {banner && (
+                        <div
+                            data-testid={`payment-banner-${banner}`}
+                            className={`mx-7 mt-5 rounded-2xl p-4 text-sm font-medium ${
+                                banner === "success"
+                                    ? "bg-green-50 text-green-800"
+                                    : banner === "cancelled"
+                                    ? "bg-amber-50 text-amber-800"
+                                    : "bg-ink/5 text-ink/75"
+                            }`}
+                        >
+                            {banner === "success"
+                                ? "Payment received — thank you! Your invoice is marked as paid below."
+                                : banner === "cancelled"
+                                ? "Payment cancelled — no money was taken. You can pay any time below."
+                                : "Finishing up your payment confirmation…"}
+                        </div>
+                    )}
 
                     {error && <p className="px-7 pt-4 text-sm font-medium text-red-700">{error}</p>}
 
@@ -322,6 +398,27 @@ export default function Account() {
                                             </li>
                                         ))}
                                     </ul>
+                                    <div className="mt-4 flex flex-wrap gap-3">
+                                        {inv.status === "sent" && (
+                                            <button
+                                                data-testid={`account-pay-button-${inv.id}`}
+                                                onClick={() => pay(inv)}
+                                                disabled={paying === inv.id}
+                                                className="rounded-full bg-ink px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-paper transition-transform hover:scale-105 active:scale-95 disabled:opacity-40"
+                                            >
+                                                {paying === inv.id ? "Opening Stripe…" : "Pay with card"}
+                                            </button>
+                                        )}
+                                        <button
+                                            data-testid={`account-invoice-pdf-${inv.id}`}
+                                            onClick={() =>
+                                                downloadInvoicePdf(inv, user?.name, user?.email)
+                                            }
+                                            className="rounded-full border border-ink/25 px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink transition-colors hover:border-ink hover:bg-ink hover:text-paper"
+                                        >
+                                            Download PDF
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>

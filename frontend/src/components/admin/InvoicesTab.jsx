@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { API_BASE, formatApiError } from "@/context/AuthContext";
 import { StatusBadge, fmtDay, fmtMoney } from "@/components/admin/shared";
+import { downloadInvoicePdf } from "@/utils/invoicePdf";
 
 export default function InvoicesTab({ customer }) {
     const [invoices, setInvoices] = useState([]);
@@ -235,8 +236,15 @@ export default function InvoicesTab({ customer }) {
                                 </li>
                             ))}
                         </ul>
-                        <div className="mt-3">
+                        <div className="mt-3 flex items-center gap-3">
                             <StatusBadge value={inv.status} />
+                            <button
+                                data-testid={`admin-invoice-pdf-${inv.id}`}
+                                onClick={() => downloadInvoicePdf(inv, customer?.name, customer?.email)}
+                                className="rounded-full border border-ink/25 px-4 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-ink transition-colors hover:border-ink hover:bg-ink hover:text-paper"
+                            >
+                                PDF
+                            </button>
                         </div>
                     </div>
                 ))}
