@@ -18,6 +18,7 @@ export default function Footer() {
                     </a>
 
                     <div className="flex flex-col gap-2 font-mono text-xs font-medium uppercase tracking-[0.2em] text-ink/80 sm:items-end">
+                        <span className="text-ink/60">Based in Plymouth, UK</span>
                         <a href={SITE.phoneHref} data-testid="footer-phone-link" className="transition-colors hover:text-ink">
                             {SITE.phoneDisplay}
                         </a>

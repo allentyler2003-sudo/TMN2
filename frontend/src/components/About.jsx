@@ -32,7 +32,7 @@ export default function About() {
                     <div>
                         <FadeUp>
                             <p className="mb-6 font-mono text-[10px] font-medium uppercase tracking-[0.3em] text-ink/70 sm:text-xs">
-                                The TMN standard
+                                The TMN standard — Plymouth, UK
                             </p>
                         </FadeUp>
                         <h2 className="max-w-3xl font-display text-4xl font-extrabold uppercase leading-[0.95] tracking-tight sm:text-6xl lg:text-7xl">

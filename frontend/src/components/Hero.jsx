@@ -53,7 +53,7 @@ export default function Hero() {
                         className="mt-8 max-w-md text-base font-medium leading-relaxed text-ink/80 sm:text-lg"
                     >
                         {`Flawless finishes and honest upkeep for homes and businesses — by TMN
-                        Decorating & Maintenance.`}
+                        Decorating & Maintenance, based in Plymouth, UK.`}
                     </motion.p>
 
                     <motion.div
