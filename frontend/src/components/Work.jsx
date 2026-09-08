@@ -1,8 +1,9 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowUpRight } from "lucide-react";
 import { PROJECTS, waLink } from "@/constants/site";
-import { FadeUp } from "@/components/Reveal";
+import { FadeUp, EASE } from "@/components/Reveal";
+
+const ASPECTS = ["aspect-[4/5]", "aspect-[3/4]", "aspect-[3/4]", "aspect-[4/5]"];
 
 function WorkCard({ project, index }) {
     const ref = useRef(null);
@@ -10,30 +11,53 @@ function WorkCard({ project, index }) {
         target: ref,
         offset: ["start end", "end start"],
     });
-    const y = useTransform(scrollYProgress, [0, 1], ["-7%", "7%"]);
+    const y = useTransform(scrollYProgress, [0, 1], ["-8%", "8%"]);
 
     return (
-        <FadeUp delay={(index % 2) * 0.12} className={index % 2 === 1 ? "sm:mt-28" : ""}>
+        <motion.div
+            initial={{ opacity: 0, y: 60 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.15 }}
+            transition={{ duration: 1, ease: EASE, delay: (index % 2) * 0.12 }}
+            className={index % 2 === 1 ? "sm:mt-28" : ""}
+        >
             <a
-                href={waLink(`Hi TMN — I saw your work and I'd like something like "${project.title}".`)}
+                href={waLink(
+                    `Hi TMN — I saw your work and I'd like something like "${project.title}".`
+                )}
                 target="_blank"
                 rel="noopener noreferrer"
                 data-testid={`work-card-${index + 1}`}
                 className="group block"
             >
-                <div ref={ref} className="relative aspect-[4/5] overflow-hidden bg-ink/5 shadow-[0_24px_70px_rgba(10,10,10,0.12)]">
-                    <motion.img
-                        style={{ y }}
-                        src={project.img}
-                        alt={project.title}
-                        loading="lazy"
-                        className="h-full w-full scale-[1.16] object-cover transition-transform duration-700 ease-out group-hover:scale-[1.22]"
-                    />
-                    <span className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-ink text-paper opacity-0 transition-all duration-500 group-hover:opacity-100">
-                        <ArrowUpRight className="h-5 w-5" />
+                <div
+                    ref={ref}
+                    className={`relative overflow-hidden bg-ink/5 shadow-[0_30px_80px_rgba(10,10,10,0.14)] ${ASPECTS[index]}`}
+                >
+                    <motion.div style={{ y }} className="h-full w-full">
+                        <motion.img
+                            src={project.img}
+                            alt={project.title}
+                            loading="lazy"
+                            initial={{ scale: 1.3 }}
+                            whileInView={{ scale: 1.18 }}
+                            viewport={{ once: true, amount: 0.15 }}
+                            transition={{ duration: 1.4, ease: EASE }}
+                            className="h-full w-full object-cover grayscale transition-[filter,transform] duration-700 ease-out group-hover:scale-[1.24] group-hover:grayscale-0"
+                        />
+                    </motion.div>
+
+                    <span className="absolute left-4 top-4 flex h-14 w-14 items-center justify-center rounded-full bg-paper/95 font-display text-sm font-extrabold tracking-wide text-ink shadow-[0_8px_24px_rgba(10,10,10,0.18)] transition-transform duration-500 group-hover:scale-110">
+                        {String(index + 1).padStart(2, "0")}
                     </span>
+
+                    <div className="absolute inset-x-0 bottom-0 flex translate-y-full items-center justify-between gap-3 bg-ink/90 px-5 py-3.5 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-paper backdrop-blur transition-transform duration-500 ease-out group-hover:translate-y-0">
+                        <span>Like this finish?</span>
+                        <span>Tap — quote on WhatsApp</span>
+                    </div>
                 </div>
-                <div className="flex items-baseline justify-between gap-4 py-5">
+
+                <div className="mt-5 flex items-baseline justify-between gap-4 border-b-2 border-ink/15 pb-4 transition-colors duration-500 group-hover:border-ink">
                     <span className="font-display text-xl font-bold uppercase tracking-tight text-ink sm:text-2xl">
                         {project.title}
                     </span>
@@ -42,7 +66,7 @@ function WorkCard({ project, index }) {
                     </span>
                 </div>
             </a>
-        </FadeUp>
+        </motion.div>
     );
 }
 
@@ -54,7 +78,7 @@ export default function Work() {
                     <div>
                         <FadeUp>
                             <p className="mb-6 font-mono text-[10px] font-medium uppercase tracking-[0.3em] text-ink/65 sm:text-xs">
-                                Recent work — selected
+                                Recent work — 04 projects, more on request
                             </p>
                         </FadeUp>
                         <FadeUp delay={0.1}>
@@ -67,13 +91,13 @@ export default function Work() {
                     </div>
                     <FadeUp delay={0.2} className="max-w-sm">
                         <p className="text-base font-medium leading-relaxed text-ink/80">
-                            A look at the standard we work to. See something you like? Tap it and
-                            tell us on WhatsApp.
+                            Hover a photo to see it in colour — the fresh-coat moment is the whole
+                            job. Tap one and tell us what you'd like on WhatsApp.
                         </p>
                     </FadeUp>
                 </div>
 
-                <div className="grid grid-cols-1 gap-x-10 gap-y-14 sm:grid-cols-2 sm:gap-y-8">
+                <div className="grid grid-cols-1 gap-x-10 gap-y-16 sm:grid-cols-2 sm:gap-y-8">
                     {PROJECTS.map((p, i) => (
                         <WorkCard key={i} project={p} index={i} />
                     ))}

@@ -35,7 +35,9 @@ as a general background with scroll animations. Iterated direction (latest wins)
 - Light monochrome editorial theme; holo-ripple video background across the whole site.
 - Kinetic masked headline hero, floating logo badge, lenis scroll, scroll reveals, marquee.
 - Services accordion 01–04 with per-service WhatsApp quote links.
-- Gallery with luxury painting imagery (representative stock — MOCKED, not client photos).
+- Gallery rebuilt as editorial cards: numbered chips, alternating frame heights, scroll
+  reveal + settle, monochrome-to-colour hover, sliding WhatsApp caption bar. Luxury painting
+  imagery (representative stock — MOCKED, not client photos).
 - Quick-quote composer → prefilled WhatsApp message; floating WhatsApp button.
 - Verified: desktop (1440) + mobile (390) screenshots, no overflow, no blank sections.
 

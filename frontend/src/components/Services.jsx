@@ -44,7 +44,13 @@ export default function Services() {
                                         onClick={() => setOpen(isOpen ? null : i)}
                                         className="group flex w-full items-center gap-5 py-7 text-left transition-colors duration-300 hover:bg-ink/[0.04] sm:gap-10 sm:py-9"
                                     >
-                                        <span className="font-mono text-xs tracking-[0.25em] text-ink/55 sm:text-sm">
+                                        <span
+                                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border font-mono text-xs tracking-[0.1em] transition-colors duration-300 ${
+                                                isOpen
+                                                    ? "border-ink bg-ink text-paper"
+                                                    : "border-ink/25 text-ink/70 group-hover:border-ink group-hover:bg-ink group-hover:text-paper"
+                                            }`}
+                                        >
                                             {s.id}
                                         </span>
                                         <span
