@@ -13,6 +13,7 @@ import About from "@/components/About";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
+import AiChat from "@/components/AiChat";
 import Login from "@/pages/Login";
 import Account from "@/pages/Account";
 import Admin from "@/pages/Admin";
@@ -140,6 +141,7 @@ function Site() {
                 </main>
                 <Footer />
                 <FloatingWhatsApp />
+                <AiChat />
             </div>
         </>
     );

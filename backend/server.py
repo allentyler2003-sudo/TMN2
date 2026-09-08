@@ -3,6 +3,7 @@ load_dotenv()
 
 import os
 import uuid
+import json
 import bcrypt
 import jwt
 import logging
@@ -14,7 +15,7 @@ from datetime import datetime, timezone, timedelta
 
 from fastapi import FastAPI, APIRouter, Request, HTTPException, Depends
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import Response
+from starlette.responses import Response, StreamingResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
@@ -730,6 +731,62 @@ async def stripe_webhook(request: Request):
             {"$set": {"status": "expired", "payment_status": "expired", "updated_at": datetime.now(timezone.utc)}},
         )
     return {"status": "ok"}
+
+
+# ---------- AI assistant (minor guidance chat) ----------
+
+from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
+
+EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+AI_SYSTEM_PROMPT = (
+    "You are the TMN Assistant for TMN Decorating & Maintenance — a friendly painting, "
+    "decorating and property maintenance company based in Plymouth, UK, serving domestic "
+    "and commercial customers. You give practical, honest guidance on minor painting, "
+    "decorating and home-maintenance questions: paint types, sheens, preparation, drying "
+    "times, colour pairing, common repairs and upkeep. Keep answers short and clear (2-5 "
+    "sentences unless steps are requested). You do not give prices, quotes, warranties or "
+    "certifications — for quotes, bookings, site visits or anything needing a person, "
+    "politely point the customer to WhatsApp or call 07736 325643, or email "
+    "info@tmndecorating.co.uk. If a question is unrelated to painting, decorating or "
+    "property maintenance, gently steer back to what TMN can help with."
+)
+
+
+class AiChatInput(BaseModel):
+    session_id: str = Field(min_length=6, max_length=64)
+    message: str = Field(min_length=1, max_length=1000)
+
+
+@api_router.post("/ai/chat")
+async def ai_chat(input: AiChatInput):
+    async def generate():
+        full = ""
+        try:
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=input.session_id,
+                system_message=AI_SYSTEM_PROMPT,
+            ).with_model("openai", "gpt-5.4")
+            async for event in chat.stream_message(UserMessage(text=input.message)):
+                if isinstance(event, TextDelta):
+                    full += event.content
+                    yield f"data: {json.dumps({'delta': event.content})}\n\n"
+                elif isinstance(event, StreamDone):
+                    break
+            yield f"data: {json.dumps({'done': True})}\n\n"
+            now = datetime.now(timezone.utc).isoformat()
+            await db.ai_chats.insert_one({"session_id": input.session_id, "role": "user", "text": input.message, "created_at": now})
+            if full:
+                await db.ai_chats.insert_one({"session_id": input.session_id, "role": "assistant", "text": full, "created_at": datetime.now(timezone.utc).isoformat()})
+        except Exception as e:
+            logger.error("AI chat error: %s", e)
+            yield f"data: {json.dumps({'error': 'The assistant is unavailable right now — please WhatsApp us on 07736 325643 instead.'})}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 # ---------- legacy status routes ----------

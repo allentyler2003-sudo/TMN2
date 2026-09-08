@@ -49,6 +49,9 @@ as a general background with scroll animations. Iterated direction (latest wins)
   status-polling mark invoices paid; tax mode = Stripe calculates only (calc_only).
 - Email: Resend notification to owner on new message / new registration / invoice paid —
   activates automatically once RESEND_API_KEY is configured on the platform.
+- AI assistant: floating sparkle button above WhatsApp opens a streaming chat panel
+  (OpenAI gpt-5.4 via Emergent LLM key, per-session history, Mongo persistence) that answers
+  minor painting/decorating/maintenance questions and redirects quotes to WhatsApp.
 - Verified: desktop (1440) + mobile (390) screenshots, no overflow, no blank sections; full
   curl verification of auth, chat, jobs, notes, invoices incl. role enforcement (403/401);
   Stripe checkout session + webhook → invoice paid verified end-to-end.
