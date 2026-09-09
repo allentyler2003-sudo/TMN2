@@ -55,13 +55,14 @@ export default function Services() {
                                             {s.id}
                                         </span>
                                         <span
-                                            className={`flex-1 font-display text-2xl font-bold uppercase tracking-tight transition-all duration-500 sm:text-4xl lg:text-5xl ${
+                                            className={`relative flex-1 font-display text-2xl font-bold uppercase tracking-tight transition-all duration-500 sm:text-4xl lg:text-5xl ${
                                                 isOpen
                                                     ? "translate-x-2 text-ink"
                                                     : "text-ink group-hover:translate-x-2"
                                             }`}
                                         >
                                             {s.title}
+                                            <span className="absolute -bottom-1.5 left-0 block h-[2px] w-full origin-left scale-x-0 bg-[#C6A55C] transition-transform duration-500 ease-out group-hover:scale-x-100" />
                                         </span>
                                         <motion.span
                                             animate={{ rotate: isOpen ? 45 : 0 }}

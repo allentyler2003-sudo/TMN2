@@ -11,9 +11,11 @@ export default function Footer() {
                             alt="TMN Decorating & Maintenance logo"
                             className="h-16 w-16 object-contain"
                         />
-                        <span className="font-display text-sm font-bold uppercase tracking-[0.18em] text-ink">
+                        <span className="font-display text-sm font-bold uppercase tracking-[0.18em] text-[#C6A55C]">
                             TMN
-                            <span className="block text-ink/65">Decorating &amp; Maintenance</span>
+                            <span className="mt-0.5 block text-[10px] font-semibold tracking-[0.3em] text-ink/60">
+                                DECORATING &amp; MAINTENANCE
+                            </span>
                         </span>
                     </a>
 

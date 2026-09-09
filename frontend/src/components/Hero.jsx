@@ -1,11 +1,39 @@
-import { useRef } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { useEffect, useRef } from "react";
+import { motion, useScroll, useTransform, useMotionValue, useMotionTemplate } from "framer-motion";
 import { waLink } from "@/constants/site";
 import { MaskedLines } from "@/components/Reveal";
 import { scrollToHash } from "@/components/Nav";
 
 export default function Hero() {
     const sectionRef = useRef(null);
+    const badgeRef = useRef(null);
+    const glowX = useMotionValue(50);
+    const glowY = useMotionValue(50);
+    const glowPower = useMotionValue(0);
+
+    useEffect(() => {
+        if (!window.matchMedia("(pointer: fine)").matches) return;
+        const onMove = (e) => {
+            const el = badgeRef.current;
+            if (!el) return;
+            const r = el.getBoundingClientRect();
+            if (r.width === 0) return;
+            const cx = r.x + r.width / 2;
+            const cy = r.y + r.height / 2;
+            const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+            glowPower.set(Math.max(0, 1 - dist / 520));
+            glowX.set(((e.clientX - r.x) / r.width) * 100);
+            glowY.set(((e.clientY - r.y) / r.height) * 100);
+        };
+        window.addEventListener("mousemove", onMove, { passive: true });
+        return () => window.removeEventListener("mousemove", onMove);
+    }, [glowPower, glowX, glowY]);
+
+    const glowXpct = useTransform(glowX, (v) => `${v.toFixed(1)}%`);
+    const glowYpct = useTransform(glowY, (v) => `${v.toFixed(1)}%`);
+    const glowBg = useMotionTemplate`radial-gradient(circle at ${glowXpct} ${glowYpct}, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.4) 42%, rgba(255,255,255,0.08) 62%, transparent 74%)`;
+    const glowOpacity = useTransform(glowPower, (v) => v * 0.95);
+
     const { scrollYProgress } = useScroll({
         target: sectionRef,
         offset: ["start start", "end start"],
@@ -111,6 +139,12 @@ export default function Hero() {
                                 src="/logo-disc.png"
                                 alt="TMN Decorating & Maintenance logo"
                                 className="h-full w-full object-contain"
+                            />
+                            {/* cursor-following luxury glow (desktop) */}
+                            <motion.div
+                                style={{ background: glowBg, opacity: glowOpacity }}
+                                className="pointer-events-none absolute -inset-1 rounded-full"
+                                aria-hidden="true"
                             />
                             {/* periodic car-badge glint — circularly masked, opacity-only */}
                             <div className="badge-glint absolute inset-0" aria-hidden="true" />
