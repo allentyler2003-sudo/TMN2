@@ -91,10 +91,8 @@ export default function Hero() {
                     style={{ y: badgeY }}
                     className="flex justify-center lg:justify-end lg:pr-6"
                 >
-                    <motion.img
+                    <motion.div
                         data-testid="hero-logo-badge"
-                        src="/logo-badge.png"
-                        alt="TMN Decorating & Maintenance logo"
                         initial={{ opacity: 0, scale: 0.85 }}
                         animate={{ opacity: 1, scale: 1, y: [0, -16, 0] }}
                         transition={{
@@ -102,8 +100,21 @@ export default function Hero() {
                             scale: { duration: 1, delay: 0.6 },
                             y: { duration: 6, repeat: Infinity, ease: "easeInOut" },
                         }}
-                        className="h-56 w-auto object-contain drop-shadow-[0_35px_60px_rgba(10,10,10,0.18)] sm:h-72 lg:h-[420px]"
-                    />
+                        className="relative h-56 w-56 sm:h-72 sm:w-72 lg:h-[420px] lg:w-[420px]"
+                    >
+                        {/* breathing holo glow behind */}
+                        <div className="holo-glow absolute -inset-8 rounded-full" aria-hidden="true" />
+                        {/* rotating iridescent ring */}
+                        <div className="holo-ring absolute -inset-2.5 rounded-full" aria-hidden="true" />
+                        {/* white disc */}
+                        <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white shadow-[0_35px_60px_rgba(10,10,10,0.18)] ring-1 ring-ink/10">
+                            <img
+                                src="/logo-dark.png"
+                                alt="TMN Decorating & Maintenance logo"
+                                className="h-[74%] w-[74%] object-contain"
+                            />
+                        </div>
+                    </motion.div>
                 </motion.div>
             </div>
 
