@@ -133,7 +133,7 @@ export default function Hero() {
                         {/* luxury gloss glass disc + circular logo, baked into one image */}
                         <div className="relative h-full w-full">
                             <img
-                                src="/logo-disc.png"
+                                src="/logo-plate.png"
                                 alt="TMN Decorating & Maintenance logo"
                                 className="h-full w-full object-contain"
                             />

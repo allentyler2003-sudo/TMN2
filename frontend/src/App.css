@@ -235,6 +235,7 @@
 }
 /* periodic glint across the badge — circularly masked, opacity-only (Android-safe) */
 .badge-glint {
+    border-radius: 12.5%;
     background: linear-gradient(
         115deg,
         transparent 32%,
@@ -242,8 +243,6 @@
         rgba(255, 255, 255, 0.35) 54%,
         transparent 66%
     );
-    -webkit-mask: radial-gradient(farthest-side, black 0 49%, transparent 50%);
-    mask: radial-gradient(farthest-side, black 0 49%, transparent 50%);
     opacity: 0;
     animation: badge-glint 7s ease-in-out infinite;
 }

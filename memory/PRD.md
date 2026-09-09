@@ -74,5 +74,13 @@ as a general background with scroll animations. Iterated direction (latest wins)
   headline. Verified with measured opacity (1 → 0.5 @450px → 0 @1000px → 1 on return) on
   desktop 1440x900 and mobile 390x844; no overflow. User may switch to fade + shrink (c).
 
+- Rectangle plate trial (user request): logo badge rebuilt as a glossy rounded-rectangle
+  glass plate — same one-flat-baked-image approach (no CSS blur → Android bug impossible),
+  corners transparent, chrome shine + gloss + rim light intact, badge-glint CSS mask switched
+  from circular to 12.5% border-radius. Live as /logo-plate.png; circle version kept at
+  /logo-disc.png for instant revert. Bake script persisted at /app/scripts/gen_plate.py
+  (radius adjustable). Scroll-fade re-verified on the plate: 1 → 0.5 @450px → 1 on return,
+  desktop 1440x900 + mobile 390x844, no overflow, no square edges.
+
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.
