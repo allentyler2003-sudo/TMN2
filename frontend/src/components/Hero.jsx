@@ -102,14 +102,14 @@ export default function Hero() {
                         }}
                         className="relative h-56 w-56 sm:h-72 sm:w-72 lg:h-[420px] lg:w-[420px]"
                     >
-                        {/* halo ring — blurred emitter for the glow */}
+                        {/* halo ring — thick diffused emitter */}
                         <div
-                            className="halo-emitter absolute -inset-4 rounded-full"
+                            className="halo-emitter absolute -inset-1.5 rounded-full"
                             aria-hidden="true"
                         />
-                        {/* halo ring — crisp glowing line */}
+                        {/* halo ring — bright core edge */}
                         <div
-                            className="halo-ring-glow absolute -inset-4 rounded-full"
+                            className="halo-ring-glow absolute -inset-2 rounded-full"
                             aria-hidden="true"
                         />
                         {/* glossy glass disc */}

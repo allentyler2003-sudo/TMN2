@@ -128,25 +128,28 @@
 
 /* ---------- glowing halo ring + glossy glass ---------- */
 .halo-ring-glow {
-    border: 2.5px solid rgba(255, 255, 255, 0.95);
+    border: 5px solid rgba(255, 255, 255, 0.95);
+    box-shadow:
+        0 0 20px 4px rgba(255, 255, 255, 0.7),
+        0 0 60px 14px rgba(228, 230, 255, 0.5);
     animation: halo-pulse 4s ease-in-out infinite;
 }
 .halo-emitter {
-    border: 3px solid rgba(255, 255, 255, 0.9);
-    filter: blur(14px);
-    opacity: 0.9;
+    border: 14px solid rgba(255, 255, 255, 0.85);
+    filter: blur(18px);
+    opacity: 0.95;
 }
 @keyframes halo-pulse {
     0%,
     100% {
         box-shadow:
-            0 0 18px 2px rgba(255, 255, 255, 0.75),
-            0 0 50px 12px rgba(225, 228, 255, 0.45);
+            0 0 22px 5px rgba(255, 255, 255, 0.65),
+            0 0 60px 16px rgba(228, 230, 255, 0.45);
     }
     50% {
         box-shadow:
-            0 0 30px 7px rgba(255, 255, 255, 0.95),
-            0 0 80px 22px rgba(225, 228, 255, 0.7);
+            0 0 34px 10px rgba(255, 255, 255, 0.95),
+            0 0 90px 26px rgba(228, 230, 255, 0.7);
     }
 }
 .glass-sheen {
