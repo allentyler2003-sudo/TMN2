@@ -127,8 +127,9 @@ export default function Hero() {
                             className="halo-ring absolute -inset-2 rounded-full"
                             aria-hidden="true"
                         />
-                        {/* frosted glass disc */}
-                        <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white/60 shadow-[0_30px_70px_rgba(140,140,190,0.4)] ring-1 ring-white/80 backdrop-blur-xl">
+                        {/* frosted glass disc — gradient glass, no backdrop-filter
+                            (Android WebView renders backdrop blur as a square) */}
+                        <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-[linear-gradient(160deg,rgba(255,255,255,0.96),rgba(244,243,252,0.9)_55%,rgba(250,242,250,0.93))] shadow-[0_30px_70px_rgba(140,140,190,0.4)] ring-1 ring-white/80">
                             <div
                                 className="pointer-events-none absolute inset-[5.5%] rounded-full border border-white/50"
                                 aria-hidden="true"
