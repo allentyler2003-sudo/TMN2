@@ -136,9 +136,9 @@ function Site() {
                 <main>
                     <Hero />
                     <Marquee />
+                    <ColourStudio />
                     <Services />
                     <Work />
-                    <ColourStudio />
                     <About />
                     <Contact />
                 </main>

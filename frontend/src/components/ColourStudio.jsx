@@ -1,7 +1,7 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { Download, RefreshCw, Sparkles, Upload, Wand2 } from "lucide-react";
+import { ChevronsLeftRight, Download, Mail, RefreshCw, Sparkles, Upload, Wand2 } from "lucide-react";
 import { waLink } from "@/constants/site";
 import { FadeUp, EASE } from "@/components/Reveal";
 
@@ -35,6 +35,58 @@ async function fileToDataUrl(file) {
     });
 }
 
+function BeforeAfter({ before, after }) {
+    const ref = useRef(null);
+    const [pos, setPos] = useState(50);
+    const dragging = useRef(false);
+
+    const setFromClientX = (clientX) => {
+        const r = ref.current.getBoundingClientRect();
+        setPos(Math.min(100, Math.max(0, ((clientX - r.x) / r.width) * 100)));
+    };
+
+    useEffect(() => {
+        const move = (e) => dragging.current && setFromClientX(e.clientX);
+        const up = () => (dragging.current = false);
+        window.addEventListener("pointermove", move);
+        window.addEventListener("pointerup", up);
+        return () => {
+            window.removeEventListener("pointermove", move);
+            window.removeEventListener("pointerup", up);
+        };
+    }, []);
+
+    return (
+        <div
+            ref={ref}
+            data-testid="colour-before-after"
+            className="relative aspect-square w-full cursor-ew-resize select-none overflow-hidden rounded-2xl ring-1 ring-ink/10"
+            style={{ touchAction: "none" }}
+            onPointerDown={(e) => {
+                dragging.current = true;
+                setFromClientX(e.clientX);
+            }}
+        >
+            <img src={before} alt="Before" draggable={false} className="absolute inset-0 h-full w-full object-cover" />
+            <div className="absolute inset-0" style={{ clipPath: `inset(0 0 0 ${pos}%)` }}>
+                <img src={after} alt="After" draggable={false} className="absolute inset-0 h-full w-full object-cover" />
+            </div>
+            <div className="pointer-events-none absolute inset-y-0" style={{ left: `${pos}%` }}>
+                <div className="absolute inset-y-0 -left-[1.5px] w-[3px] bg-white shadow-[0_0_12px_rgba(255,255,255,0.8)]" />
+                <div className="absolute top-1/2 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-[0_8px_24px_rgba(10,10,10,0.25)]">
+                    <ChevronsLeftRight className="h-5 w-5 text-ink" />
+                </div>
+            </div>
+            <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-ink/75 px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-paper">
+                Before
+            </span>
+            <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-[#C6A55C] px-3 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-white">
+                After — AI
+            </span>
+        </div>
+    );
+}
+
 export default function ColourStudio() {
     const [image, setImage] = useState(null);
     const [selected, setSelected] = useState(null);
@@ -42,6 +94,9 @@ export default function ColourStudio() {
     const [result, setResult] = useState(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
+    const [email, setEmail] = useState("");
+    const [emailState, setEmailState] = useState(null);
+    const [emailing, setEmailing] = useState(false);
     const fileRef = useRef(null);
 
     const pick = async (e) => {
@@ -49,11 +104,17 @@ export default function ColourStudio() {
         if (!file) return;
         setError("");
         setResult(null);
+        setEmailState(null);
         try {
             setImage(await fileToDataUrl(file));
         } catch {
             setError("That image could not be read — try a different photo.");
         }
+    };
+
+    const reset = () => {
+        setResult(null);
+        setEmailState(null);
     };
 
     const generate = async () => {
@@ -66,6 +127,7 @@ export default function ColourStudio() {
         setBusy(true);
         setError("");
         setResult(null);
+        setEmailState(null);
         try {
             const { data } = await axios.post(
                 `${API_BASE}/ai/colour`,
@@ -83,18 +145,36 @@ export default function ColourStudio() {
         }
     };
 
+    const sendEmail = async () => {
+        if (!result) return;
+        setEmailing(true);
+        setEmailState(null);
+        try {
+            await axios.post(
+                `${API_BASE}/ai/colour/email`,
+                { to: email, image: result.image, prompt: result.prompt },
+                { withCredentials: true, timeout: 60000 }
+            );
+            setEmailState({ ok: true, msg: `Sent to ${email} — check your inbox (and spam, just in case).` });
+        } catch (err) {
+            setEmailState({ ok: false, msg: err.response?.data?.detail || "The email couldn't be sent — please try again." });
+        } finally {
+            setEmailing(false);
+        }
+    };
+
     return (
-        <section id="colours" data-testid="colour-studio" className="relative py-24 sm:py-36">
+        <section id="colours" data-testid="colour-studio" className="relative py-20 sm:py-28">
             <div className="mx-auto max-w-[1600px] px-5 sm:px-8 lg:px-12">
-                <div className="mb-14 flex flex-col gap-6 sm:mb-16 sm:flex-row sm:items-end sm:justify-between">
+                <div className="mb-12 flex flex-col gap-6 sm:mb-14 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                         <FadeUp>
-                            <p className="mb-6 font-mono text-[10px] font-medium uppercase tracking-[0.3em] text-ink/65 sm:text-xs">
+                            <p className="mb-5 font-mono text-[10px] font-medium uppercase tracking-[0.3em] text-ink/65 sm:text-xs">
                                 AI colour studio — free
                             </p>
                         </FadeUp>
                         <FadeUp delay={0.1}>
-                            <h2 className="font-display text-4xl font-extrabold uppercase leading-[0.95] tracking-tight text-ink sm:text-6xl lg:text-7xl">
+                            <h2 className="font-display text-4xl font-extrabold uppercase leading-[0.95] tracking-tight text-ink sm:text-6xl">
                                 Test colours on
                                 <br />
                                 <span className="text-outline-ink">your room.</span>
@@ -104,8 +184,7 @@ export default function ColourStudio() {
                     <FadeUp delay={0.2} className="max-w-sm">
                         <p className="text-base font-medium leading-relaxed text-ink/80">
                             Upload a photo of your room, pick a look or describe your own, and
-                            our AI repaints it in seconds — so you can see it before a single
-                            brush is lifted.
+                            our AI repaints it in seconds — drag the slider to compare.
                         </p>
                     </FadeUp>
                 </div>
@@ -152,7 +231,7 @@ export default function ColourStudio() {
                                                 data-testid="colour-change-photo"
                                                 onClick={() => {
                                                     setImage(null);
-                                                    setResult(null);
+                                                    reset();
                                                     setSelected(null);
                                                     setCustom("");
                                                     fileRef.current?.click();
@@ -252,32 +331,12 @@ export default function ColourStudio() {
                         <div className="rounded-3xl border border-ink/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(10,10,10,0.09)] sm:p-8">
                             {result ? (
                                 <div className="space-y-5">
-                                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                                        <div>
-                                            <p className="mb-2 font-mono text-[9px] font-bold uppercase tracking-[0.25em] text-ink/50">
-                                                Before
-                                            </p>
-                                            <img
-                                                src={image}
-                                                alt="Before"
-                                                className="aspect-square w-full rounded-2xl object-cover ring-1 ring-ink/10"
-                                            />
-                                        </div>
-                                        <div>
-                                            <p className="mb-2 font-mono text-[9px] font-bold uppercase tracking-[0.25em] text-[#C6A55C]">
-                                                After — AI
-                                            </p>
-                                            <img
-                                                data-testid="colour-result-img"
-                                                src={result.image}
-                                                alt="After — repainted by AI"
-                                                className="aspect-square w-full rounded-2xl object-cover ring-1 ring-ink/10"
-                                            />
-                                        </div>
-                                    </div>
+                                    <BeforeAfter before={image} after={result.image} />
+
                                     <p className="rounded-xl bg-ink/5 p-3 font-mono text-[10px] font-medium leading-relaxed text-ink/65">
                                         {result.prompt}
                                     </p>
+
                                     <div className="flex flex-wrap gap-3">
                                         <a
                                             data-testid="colour-result-download"
@@ -289,7 +348,7 @@ export default function ColourStudio() {
                                         </a>
                                         <button
                                             data-testid="colour-try-another"
-                                            onClick={() => setResult(null)}
+                                            onClick={reset}
                                             className="inline-flex items-center gap-2 rounded-full border border-ink/25 px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink transition-colors hover:border-ink hover:bg-ink hover:text-paper"
                                         >
                                             <Sparkles className="h-4 w-4" /> Try another colour
@@ -304,6 +363,40 @@ export default function ColourStudio() {
                                             Get this look — quote
                                         </a>
                                     </div>
+
+                                    <div className="rounded-2xl border border-ink/10 bg-white/90 p-5">
+                                        <p className="mb-3 flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/60">
+                                            <Mail className="h-3.5 w-3.5" /> Email me this look
+                                        </p>
+                                        {emailState && (
+                                            <p
+                                                className={`mb-3 rounded-xl p-3 text-sm font-medium ${
+                                                    emailState.ok ? "bg-green-50 text-green-800" : "bg-amber-50 text-amber-800"
+                                                }`}
+                                                data-testid="colour-email-status"
+                                            >
+                                                {emailState.msg}
+                                            </p>
+                                        )}
+                                        <div className="flex flex-wrap gap-2.5">
+                                            <input
+                                                data-testid="colour-email-input"
+                                                type="email"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                placeholder="your@email.co.uk"
+                                                className="min-w-0 flex-1 rounded-full border border-ink/20 bg-transparent px-4 py-3 text-sm font-medium placeholder:text-ink/40 focus:border-ink focus:outline-none"
+                                            />
+                                            <button
+                                                data-testid="colour-email-send"
+                                                onClick={sendEmail}
+                                                disabled={emailing || !email.trim()}
+                                                className="rounded-full border border-ink/30 px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink transition-colors hover:border-ink hover:bg-ink hover:text-paper disabled:opacity-40"
+                                            >
+                                                {emailing ? "Sending…" : "Email me this"}
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-5 rounded-2xl border-2 border-dashed border-ink/15 p-8 text-center">
@@ -314,9 +407,9 @@ export default function ColourStudio() {
                                         <Sparkles className="h-9 w-9 text-ink/40" strokeWidth={1.25} />
                                     </div>
                                     <p className="max-w-[280px] text-sm font-medium leading-relaxed text-ink/55">
-                                        Your before &amp; after appears here. Try sage walls, a
-                                        navy feature wall, charcoal woodwork — or describe your
-                                        own scheme.
+                                        Your before &amp; after appears here — drag the slider to
+                                        reveal your repainted room. Try sage walls, a navy feature
+                                        wall, charcoal woodwork, or your own scheme.
                                     </p>
                                 </div>
                             )}

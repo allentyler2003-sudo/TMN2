@@ -846,6 +846,54 @@ async def ai_colour(body: ColourRequest):
     return {"image": f"data:image/png;base64,{out_b64}"}
 
 
+class ColourEmailInput(BaseModel):
+    to: str = Field(min_length=5, max_length=120)
+    image: str = Field(min_length=32)
+    prompt: str = ""
+
+
+@api_router.post("/ai/colour/email")
+async def ai_colour_email(body: ColourEmailInput):
+    if not body.to or "@" not in body.to or "." not in body.to.split("@")[-1]:
+        raise HTTPException(status_code=400, detail="Please enter a valid email address")
+    if not body.image.startswith("data:image/"):
+        raise HTTPException(status_code=400, detail="No image to send")
+    key = os.environ.get("RESEND_API_KEY")
+    if not key:
+        raise HTTPException(
+            status_code=503,
+            detail="Email delivery isn't switched on yet — use Save it to keep the image, or WhatsApp us and we'll send it over.",
+        )
+    try:
+        resend.api_key = key
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [body.to.strip()],
+            "subject": "Your TMN colour test",
+            "html": (
+                "<div style='font-family:Arial,sans-serif;max-width:560px'>"
+                "<h2 style='color:#0a0a0a'>Your TMN colour test</h2>"
+                f"<p style='color:#444'>Scheme applied: <b>{body.prompt or 'AI suggested luxury scheme'}</b></p>"
+                "<p style='color:#444'>Like it? We'd love to do the real thing — "
+                "<a href='https://wa.me/447736325643'>WhatsApp us on 07736 325643</a> "
+                "or reply to this email.</p>"
+                "<p style='color:#888;font-size:13px'>TMN Decorating & Maintenance — Plymouth, UK</p>"
+                "</div>"
+            ),
+            "attachments": [{
+                "filename": "tmn-colour-idea.png",
+                "content": body.image.split(",", 1)[1],
+            }],
+        }
+        await asyncio.to_thread(resend.Emails.send, params)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Colour email failed: %s", e)
+        raise HTTPException(status_code=502, detail="The email couldn't be sent right now — please try again shortly")
+    return {"ok": True}
+
+
 # ---------- legacy status routes ----------
 
 @api_router.post("/status", response_model=StatusCheck)
