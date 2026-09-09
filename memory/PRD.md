@@ -68,5 +68,11 @@ as a general background with scroll animations. Iterated direction (latest wins)
   curl verification of auth, chat, jobs, notes, invoices incl. role enforcement (403/401);
   Stripe checkout session + webhook → invoice paid verified end-to-end.
 
+- Floating TMN logo disc (Msg 680): now dissolves gradually across the whole hero as the
+  visitor scrolls down (scroll-linked opacity, option b "cinematic fade") and fades back in
+  as they scroll back up; removed the upward parallax slide that used to push it over the
+  headline. Verified with measured opacity (1 → 0.5 @450px → 0 @1000px → 1 on return) on
+  desktop 1440x900 and mobile 390x844; no overflow. User may switch to fade + shrink (c).
+
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.

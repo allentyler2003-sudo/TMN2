@@ -38,7 +38,7 @@ export default function Hero() {
         target: sectionRef,
         offset: ["start start", "end start"],
     });
-    const badgeY = useTransform(scrollYProgress, [0, 1], [0, -90]);
+    const badgeOpacity = useTransform(scrollYProgress, [0, 1], [1, 0]);
     const contentY = useTransform(scrollYProgress, [0, 1], [0, 120]);
     const contentOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
@@ -116,7 +116,7 @@ export default function Hero() {
                 </motion.div>
 
                 <motion.div
-                    style={{ y: badgeY }}
+                    style={{ opacity: badgeOpacity }}
                     className="flex justify-center lg:justify-end lg:pr-6"
                 >
                     <motion.div
@@ -131,10 +131,7 @@ export default function Hero() {
                         className="relative h-48 w-48 sm:h-64 sm:w-64 lg:h-[380px] lg:w-[380px]"
                     >
                         {/* luxury gloss glass disc + circular logo, baked into one image */}
-                        <div
-                            data-testid="hero-logo-badge"
-                            className="relative h-full w-full"
-                        >
+                        <div className="relative h-full w-full">
                             <img
                                 src="/logo-disc.png"
                                 alt="TMN Decorating & Maintenance logo"
