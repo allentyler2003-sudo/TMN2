@@ -7,6 +7,7 @@ import { EASE } from "@/components/Reveal";
 const LINKS = [
     { label: "Services", hash: "#services", testid: "nav-link-services" },
     { label: "Work", hash: "#work", testid: "nav-link-work" },
+    { label: "Colours", hash: "#colours", testid: "nav-link-colours" },
     { label: "About", hash: "#about", testid: "nav-link-about" },
     { label: "Contact", hash: "#contact", testid: "nav-link-contact" },
 ];

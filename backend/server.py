@@ -4,6 +4,7 @@ load_dotenv()
 import os
 import uuid
 import json
+import base64
 import bcrypt
 import jwt
 import logging
@@ -16,6 +17,7 @@ from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, APIRouter, Request, HTTPException, Depends
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import Response, StreamingResponse
+from openai import OpenAI as OpenAIClient
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
@@ -792,6 +794,56 @@ async def ai_chat(input: AiChatInput):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+# ---------- AI colour visualiser ----------
+
+class ColourRequest(BaseModel):
+    image: str = Field(min_length=32)
+    prompt: str = Field(min_length=3, max_length=600)
+
+
+@api_router.post("/ai/colour")
+async def ai_colour(body: ColourRequest):
+    if not body.image.startswith("data:image/"):
+        raise HTTPException(status_code=400, detail="Please upload a valid image")
+    try:
+        png_bytes = base64.b64decode(body.image.split(",", 1)[1])
+    except Exception:
+        raise HTTPException(status_code=400, detail="That image could not be read")
+    if len(png_bytes) > 12 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image too large — try a smaller photo")
+
+    styled_prompt = (
+        f"Repaint this room exactly as instructed: {body.prompt}. "
+        "Change ONLY the paint colours described — keep the room's structure, furniture, "
+        "flooring, windows, lighting and perspective exactly identical. Photorealistic, "
+        "professional quality."
+    )
+    try:
+        client = OpenAIClient(
+            api_key=EMERGENT_LLM_KEY,
+            base_url=f"{os.environ.get('INTEGRATION_PROXY_URL', 'https://integrations.emergentagent.com')}/llm",
+            timeout=280,
+            max_retries=0,
+        )
+        res = await asyncio.to_thread(
+            client.images.edit,
+            model="gpt-image-1",
+            image=("room.png", png_bytes),
+            prompt=styled_prompt,
+            size="1024x1024",
+        )
+        out_b64 = res.data[0].b64_json
+    except Exception as e:
+        logger.error("AI colour edit failed: %s", e)
+        raise HTTPException(status_code=502, detail="The colour studio is busy right now — please try again in a moment")
+
+    await db.ai_colours.insert_one({
+        "prompt": body.prompt,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"image": f"data:image/png;base64,{out_b64}"}
 
 
 # ---------- legacy status routes ----------

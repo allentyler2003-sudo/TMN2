@@ -54,6 +54,10 @@ as a general background with scroll animations. Iterated direction (latest wins)
   minor painting/decorating/maintenance questions and redirects quotes to WhatsApp. The
   assistant knows any domestic trade can be completed by TMN or their qualified tradesman
   friends (single point of contact).
+- AI Colour Studio section (#colours): visitors upload a room photo, pick a preset look
+  (sage/navy/ivory/charcoal/blush/white) or type their own scheme, and gpt-image-1 (via the
+  Emergent proxy) repaints only the described surfaces — before/after display, save image,
+  gold "Get this look — quote" WhatsApp link. Verified end-to-end (42s generation).
 - Homepage background music: client's second uploaded track (57s), continuous loop, homepage only
   (mounted in the Site component so login/account/admin pages are silent). Music auto-starts
   as soon as the visitor makes their first interaction (tap/scroll/key — browser autoplay

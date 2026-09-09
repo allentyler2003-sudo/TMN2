@@ -15,6 +15,7 @@ import Footer from "@/components/Footer";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import AiChat from "@/components/AiChat";
 import HomeMusic from "@/components/HomeMusic";
+import ColourStudio from "@/components/ColourStudio";
 import Login from "@/pages/Login";
 import Account from "@/pages/Account";
 import Admin from "@/pages/Admin";
@@ -137,6 +138,7 @@ function Site() {
                     <Marquee />
                     <Services />
                     <Work />
+                    <ColourStudio />
                     <About />
                     <Contact />
                 </main>
