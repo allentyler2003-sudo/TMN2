@@ -801,6 +801,7 @@ async def ai_chat(input: AiChatInput):
 class ColourRequest(BaseModel):
     image: str = Field(min_length=32)
     prompt: str = Field(min_length=3, max_length=600)
+    mode: str = Field(default="interior", pattern="^(interior|exterior)$")
 
 
 @api_router.post("/ai/colour")
@@ -814,12 +815,21 @@ async def ai_colour(body: ColourRequest):
     if len(png_bytes) > 12 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="Image too large — try a smaller photo")
 
-    styled_prompt = (
-        f"Repaint this room exactly as instructed: {body.prompt}. "
-        "Change ONLY the paint colours described — keep the room's structure, furniture, "
-        "flooring, windows, lighting and perspective exactly identical. Photorealistic, "
-        "professional quality."
-    )
+    if body.mode == "exterior":
+        styled_prompt = (
+            f"Repaint the EXTERIOR of this property exactly as instructed: {body.prompt}. "
+            "Change ONLY the paint colours on the outside surfaces — walls, render, brickwork, "
+            "woodwork, doors, window frames, fascias and soffits. Keep the structure, roofline, "
+            "windows, garden, sky, lighting and perspective exactly identical. Photorealistic, "
+            "professional quality."
+        )
+    else:
+        styled_prompt = (
+            f"Repaint this room exactly as instructed: {body.prompt}. "
+            "Change ONLY the paint colours described — keep the room's structure, furniture, "
+            "flooring, windows, lighting and perspective exactly identical. Photorealistic, "
+            "professional quality."
+        )
     try:
         client = OpenAIClient(
             api_key=EMERGENT_LLM_KEY,
@@ -837,10 +847,12 @@ async def ai_colour(body: ColourRequest):
         out_b64 = res.data[0].b64_json
     except Exception as e:
         logger.error("AI colour edit failed: %s", e)
-        raise HTTPException(status_code=502, detail="The colour studio is busy right now — please try again in a moment")
+        # 4xx so the preview edge passes the JSON detail through (5xx gets replaced by an HTML error page)
+        raise HTTPException(status_code=429, detail="The colour studio is busy right now — please try again in a moment")
 
     await db.ai_colours.insert_one({
         "prompt": body.prompt,
+        "mode": body.mode,
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
     return {"image": f"data:image/png;base64,{out_b64}"}
@@ -861,7 +873,7 @@ async def ai_colour_email(body: ColourEmailInput):
     key = os.environ.get("RESEND_API_KEY")
     if not key:
         raise HTTPException(
-            status_code=503,
+            status_code=429,
             detail="Email delivery isn't switched on yet — use Save it to keep the image, or WhatsApp us and we'll send it over.",
         )
     try:
@@ -890,7 +902,8 @@ async def ai_colour_email(body: ColourEmailInput):
         raise
     except Exception as e:
         logger.error("Colour email failed: %s", e)
-        raise HTTPException(status_code=502, detail="The email couldn't be sent right now — please try again shortly")
+        # 4xx so the preview edge passes the JSON detail through (5xx gets replaced by an HTML error page)
+        raise HTTPException(status_code=429, detail="The email couldn't be sent right now — please try again shortly")
     return {"ok": True}
 
 

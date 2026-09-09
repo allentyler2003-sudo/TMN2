@@ -1,18 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { ChevronsLeftRight, Download, Mail, RefreshCw, Sparkles, Upload, Wand2 } from "lucide-react";
+import { Building2, ChevronsLeftRight, Download, Home, Mail, RefreshCw, Sparkles, Upload, Wand2 } from "lucide-react";
 import { waLink } from "@/constants/site";
 import { FadeUp, EASE } from "@/components/Reveal";
 
-const PRESETS = [
-    { label: "Sage green walls", prompt: "Repaint the main walls a warm sage green, keep the woodwork white" },
-    { label: "Navy feature wall", prompt: "Paint the main feature wall a deep navy blue, keep other walls light" },
-    { label: "Warm ivory walls", prompt: "Repaint the walls a warm ivory white, keep woodwork bright white" },
-    { label: "Charcoal woodwork", prompt: "Repaint the woodwork — skirting, doors and frames — a dark charcoal grey, keep the walls as they are" },
-    { label: "Soft blush walls", prompt: "Repaint the walls a soft blush pink, keep woodwork white" },
-    { label: "Clean white modern", prompt: "Repaint every wall a bright clean white and all woodwork pure white" },
-];
+const PRESETS = {
+    interior: [
+        { label: "Sage green walls", prompt: "Repaint the main walls a warm sage green, keep the woodwork white" },
+        { label: "Navy feature wall", prompt: "Paint the main feature wall a deep navy blue, keep other walls light" },
+        { label: "Warm ivory walls", prompt: "Repaint the walls a warm ivory white, keep woodwork bright white" },
+        { label: "Charcoal woodwork", prompt: "Repaint the woodwork — skirting, doors and frames — a dark charcoal grey, keep the walls as they are" },
+        { label: "Soft blush walls", prompt: "Repaint the walls a soft blush pink, keep woodwork white" },
+        { label: "Clean white modern", prompt: "Repaint every wall a bright clean white and all woodwork pure white" },
+    ],
+    exterior: [
+        { label: "Slate grey render", prompt: "Repaint the exterior render a smart slate grey, keep the woodwork, doors and window frames white" },
+        { label: "White painted brick", prompt: "Paint the exterior brickwork a clean heritage white, keep the doors and woodwork classic black" },
+        { label: "Charcoal woodwork", prompt: "Repaint all the exterior woodwork — doors, window frames, fascias and soffits — a deep charcoal grey, keep the walls as they are" },
+        { label: "Sage front door", prompt: "Repaint just the front door and window frames a heritage sage green, keep every other surface exactly as it is" },
+        { label: "Cream & stone", prompt: "Repaint the outside walls a warm cream stone tone and the woodwork a dark anthracite grey" },
+        { label: "Full exterior refresh", prompt: "Repaint the whole exterior in a premium scheme — walls in warm white, all woodwork, doors and trims in smart anthracite grey" },
+    ],
+};
 
 const API_BASE = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -89,6 +99,7 @@ function BeforeAfter({ before, after }) {
 
 export default function ColourStudio() {
     const [image, setImage] = useState(null);
+    const [mode, setMode] = useState("interior");
     const [selected, setSelected] = useState(null);
     const [custom, setCustom] = useState("");
     const [result, setResult] = useState(null);
@@ -119,11 +130,13 @@ export default function ColourStudio() {
 
     const generate = async () => {
         if (!image) return;
-        const preset = PRESETS.find((p) => p.label === selected);
+        const preset = PRESETS[mode].find((p) => p.label === selected);
         const prompt =
             custom.trim() ||
             (preset ? preset.prompt : "") ||
-            "Suggest and apply tasteful, premium paint colours that suit this room — repaint the walls and woodwork in a cohesive luxury scheme";
+            (mode === "exterior"
+                ? "Suggest and apply tasteful, premium exterior paint colours that suit this property — repaint the outside walls and woodwork in a cohesive luxury scheme"
+                : "Suggest and apply tasteful, premium paint colours that suit this room — repaint the walls and woodwork in a cohesive luxury scheme");
         setBusy(true);
         setError("");
         setResult(null);
@@ -131,7 +144,7 @@ export default function ColourStudio() {
         try {
             const { data } = await axios.post(
                 `${API_BASE}/ai/colour`,
-                { image, prompt },
+                { image, prompt, mode },
                 { withCredentials: true, timeout: 240000 }
             );
             setResult({ image: data.image, prompt });
@@ -245,10 +258,58 @@ export default function ColourStudio() {
 
                                     <div>
                                         <p className="mb-3 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/55">
+                                            What are we painting?
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-2.5">
+                                            {[
+                                                { id: "interior", label: "Interior", sub: "Rooms & indoor woodwork" },
+                                                { id: "exterior", label: "Exterior", sub: "Walls, doors & trims" },
+                                            ].map((m) => {
+                                                const active = mode === m.id;
+                                                const Icon = m.id === "interior" ? Home : Building2;
+                                                return (
+                                                    <button
+                                                        key={m.id}
+                                                        data-testid={`colour-mode-${m.id}`}
+                                                        onClick={() => {
+                                                            setMode(m.id);
+                                                            setSelected(null);
+                                                            reset();
+                                                        }}
+                                                        className={`flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-all duration-300 ${
+                                                            active
+                                                                ? "border-ink bg-ink/[0.04]"
+                                                                : "border-ink/15 hover:border-ink/40"
+                                                        }`}
+                                                    >
+                                                        <Icon
+                                                            className={`mt-0.5 h-5 w-5 shrink-0 ${active ? "text-ink" : "text-ink/50"}`}
+                                                            strokeWidth={1.75}
+                                                        />
+                                                        <span>
+                                                            <span
+                                                                className={`block font-display text-sm font-bold uppercase tracking-tight ${
+                                                                    active ? "text-ink" : "text-ink/70"
+                                                                }`}
+                                                            >
+                                                                {m.label}
+                                                            </span>
+                                                            <span className="mt-0.5 block text-xs font-medium text-ink/55">
+                                                                {m.sub}
+                                                            </span>
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <p className="mb-3 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/55">
                                             Pick a look
                                         </p>
                                         <div className="flex flex-wrap gap-2.5">
-                                            {PRESETS.map((p) => {
+                                            {PRESETS[mode].map((p) => {
                                                 const active = selected === p.label && !custom.trim();
                                                 return (
                                                     <button
@@ -280,7 +341,11 @@ export default function ColourStudio() {
                                             value={custom}
                                             onChange={(e) => setCustom(e.target.value)}
                                             rows={2}
-                                            placeholder="e.g. sage green walls, off-black woodwork, feature wall in deep teal…"
+                                            placeholder={
+                                                mode === "exterior"
+                                                    ? "e.g. slate grey render, black front door, white fascias and soffits…"
+                                                    : "e.g. sage green walls, off-black woodwork, feature wall in deep teal…"
+                                            }
                                             className="w-full resize-none rounded-2xl border border-ink/20 bg-transparent p-4 text-sm font-medium placeholder:text-ink/40 focus:border-ink focus:outline-none"
                                         />
                                         <p className="mt-2 text-xs font-medium text-ink/50">

@@ -82,5 +82,21 @@ as a general background with scroll animations. Iterated direction (latest wins)
   (radius adjustable). Scroll-fade re-verified on the plate: 1 → 0.5 @450px → 1 on return,
   desktop 1440x900 + mobile 390x844, no overflow, no square edges.
 
+- Colour Studio interior/exterior (user request): new "What are we painting?" toggle after
+  photo upload — Interior (rooms & indoor woodwork) and Exterior (walls, doors & trims),
+  each with its own 6 preset looks, adaptive custom placeholder and adaptive default AI
+  scheme; backend /api/ai/colour accepts mode and uses an exterior-specific repaint prompt;
+  mode stored with each generation.
+- ROOT CAUSE of "upload isn't working": the Emergent Universal LLM key hit its budget
+  (429 budget_exceeded, cost 0.51417 / max 0.4) → ALL AI features (colour generation AND
+  chat) fail until the user tops up: Profile → Manage plan → Universal Key → Add Balance
+  (or enable auto top-up). Upload/preview themselves work fine.
+- Edge bug fixed: preview edge replaces backend 5xx bodies with its own HTML error page, so
+  visitors saw generic "something went wrong" — AI failure + email failure now return 429
+  JSON so the friendly detail messages reach the browser (verified externally).
+- Verified: external curl (422 validation, 429 JSON detail passthrough, login 200), UI
+  toggle + preset sets + placeholder on desktop 1440x900 + mobile 390x844, no overflow.
+  NOT verifiable until key top-up: a real end-to-end repaint (budget 429).
+
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.
