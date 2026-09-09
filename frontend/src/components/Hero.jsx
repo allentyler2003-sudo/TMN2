@@ -142,9 +142,9 @@ export default function Hero() {
                                 aria-hidden="true"
                             />
                             <img
-                                src="/logo-dark.png"
+                                src="/logo-circle.png"
                                 alt="TMN Decorating & Maintenance logo"
-                                className="relative h-[57%] w-[57%] object-contain"
+                                className="relative h-[92%] w-[92%] object-contain"
                             />
                             {/* light sweep across the glass */}
                             <div
