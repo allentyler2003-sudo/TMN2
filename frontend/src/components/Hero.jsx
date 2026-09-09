@@ -102,42 +102,13 @@ export default function Hero() {
                         }}
                         className="relative h-56 w-56 sm:h-72 sm:w-72 lg:h-[420px] lg:w-[420px]"
                     >
-                        {/* iridescent rainbow holofoil halo — circular mask, fades out round */}
-                        <div
-                            className="halo-iridescent absolute -inset-4 rounded-full"
-                            aria-hidden="true"
+                        {/* luxury gloss glass disc + circular logo, baked into one image */}
+                        <img
+                            data-testid="hero-logo-badge"
+                            src="/logo-disc.png"
+                            alt="TMN Decorating & Maintenance logo"
+                            className="h-full w-full object-contain"
                         />
-                        {/* thin bright ring at the disc edge */}
-                        <div
-                            className="halo-ring absolute inset-0 rounded-full"
-                            aria-hidden="true"
-                        />
-                        {/* frosted glass disc — gradient glass, no backdrop-filter
-                            (Android WebView renders backdrop blur as a square) */}
-                        <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-[linear-gradient(160deg,rgba(255,255,255,0.96),rgba(244,243,252,0.9)_55%,rgba(250,242,250,0.93))] shadow-[0_30px_70px_rgba(140,140,190,0.4)] ring-1 ring-white/80">
-                            <div
-                                className="pointer-events-none absolute inset-[5.5%] rounded-full border border-white/50"
-                                aria-hidden="true"
-                            />
-                            <div
-                                className="pointer-events-none absolute inset-0 shadow-[inset_0_14px_34px_rgba(255,255,255,0.9),inset_0_-22px_44px_rgba(125,125,170,0.25)]"
-                                aria-hidden="true"
-                            />
-                            <div
-                                className="pointer-events-none absolute -top-[24%] -left-[18%] h-[70%] w-[85%] rounded-full bg-white/80 blur-2xl"
-                                aria-hidden="true"
-                            />
-                            <img
-                                src="/logo-circle.png?v=3"
-                                alt="TMN Decorating & Maintenance logo"
-                                className="relative h-[92%] w-[92%] object-contain"
-                            />
-                            {/* light sweep across the glass */}
-                            <div
-                                className="glass-sheen pointer-events-none absolute inset-y-[-30%] w-[45%] bg-[linear-gradient(100deg,transparent_10%,rgba(255,255,255,0.65)_50%,transparent_90%)]"
-                                aria-hidden="true"
-                            />
-                        </div>
                     </motion.div>
                 </motion.div>
             </div>
