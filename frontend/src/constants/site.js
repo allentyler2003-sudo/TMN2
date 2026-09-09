@@ -64,6 +64,18 @@ export const SERVICES = [
             "Domestic & commercial",
         ],
     },
+    {
+        id: "05",
+        title: "Any Trade, One Call",
+        blurb:
+            "Any domestic trade can be completed by ourselves or our qualified friends in the trades we share work with — one call, everything handled.",
+        points: [
+            "Any domestic trade covered",
+            "Qualified, trusted tradespeople",
+            "One point of contact — TMN",
+            "No domestic job too small",
+        ],
+    },
 ];
 
 export const PROJECTS = [

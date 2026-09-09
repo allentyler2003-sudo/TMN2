@@ -51,7 +51,13 @@ as a general background with scroll animations. Iterated direction (latest wins)
   activates automatically once RESEND_API_KEY is configured on the platform.
 - AI assistant: floating sparkle button above WhatsApp opens a streaming chat panel
   (OpenAI gpt-5.4 via Emergent LLM key, per-session history, Mongo persistence) that answers
-  minor painting/decorating/maintenance questions and redirects quotes to WhatsApp.
+  minor painting/decorating/maintenance questions and redirects quotes to WhatsApp. The
+  assistant knows any domestic trade can be completed by TMN or their qualified tradesman
+  friends (single point of contact).
+- Homepage background music: client's uploaded track loops on the homepage only (mounted in
+  the Site component so login/account/admin pages are silent), with a floating speaker toggle
+  stacked above the AI button; autoplay attempted, graceful tap-to-start fallback.
+- Services now has chapter 05 "Any Trade, One Call" describing the same full-trade message.
 - Verified: desktop (1440) + mobile (390) screenshots, no overflow, no blank sections; full
   curl verification of auth, chat, jobs, notes, invoices incl. role enforcement (403/401);
   Stripe checkout session + webhook → invoice paid verified end-to-end.

@@ -14,7 +14,7 @@ export default function Services() {
                     <div>
                         <FadeUp>
                             <p className="mb-6 font-mono text-[10px] font-medium uppercase tracking-[0.3em] text-ink/65 sm:text-xs">
-                                What we do — 01/04
+                                What we do — 01/05
                             </p>
                         </FadeUp>
                         <FadeUp delay={0.1}>
@@ -27,8 +27,9 @@ export default function Services() {
                     </div>
                     <FadeUp delay={0.2} className="max-w-sm">
                         <p className="text-base font-medium leading-relaxed text-ink/80">
-                            Four things, done to one standard. Pick a chapter — every job gets the
-                            same preparation, the same finish and the same clean-up.
+                            Whatever the trade, done to one standard — by ourselves or our
+                            qualified friends in the trades we share work with. Every job gets
+                            the same preparation, the same finish and the same clean-up.
                         </p>
                     </FadeUp>
                 </div>
