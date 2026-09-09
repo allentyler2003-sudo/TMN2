@@ -45,7 +45,7 @@ export default function Nav() {
             initial={{ y: -90, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.9, ease: EASE, delay: 0.15 }}
-            className={`fixed inset-x-0 top-0 z-50 bg-paper/85 backdrop-blur-xl transition-shadow duration-500 ${
+            className={`fixed inset-x-0 top-0 z-50 bg-paper/85 transition-shadow duration-500 ${
                 scrolled ? "shadow-[0_1px_0_rgba(10,10,10,0.12),0_12px_40px_rgba(10,10,10,0.06)]" : ""
             }`}
         >

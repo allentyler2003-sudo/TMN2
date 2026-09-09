@@ -143,7 +143,7 @@ export default function Hero() {
                                 aria-hidden="true"
                             />
                             <img
-                                src="/logo-circle.png"
+                                src="/logo-circle.png?v=3"
                                 alt="TMN Decorating & Maintenance logo"
                                 className="relative h-[92%] w-[92%] object-contain"
                             />

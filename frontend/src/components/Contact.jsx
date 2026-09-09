@@ -101,7 +101,7 @@ export default function Contact() {
                     <FadeUp delay={0.15}>
                         <div
                             data-testid="quick-quote-card"
-                            className="rounded-3xl border border-ink/10 bg-white/80 p-7 shadow-[0_24px_70px_rgba(10,10,10,0.10)] backdrop-blur-xl sm:p-10"
+                            className="rounded-3xl border border-ink/10 bg-white/90 p-7 shadow-[0_24px_70px_rgba(10,10,10,0.10)] sm:p-10"
                         >
                             <h3 className="font-display text-2xl font-bold uppercase tracking-tight text-ink sm:text-3xl">
                                 Quick quote

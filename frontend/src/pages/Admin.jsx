@@ -74,7 +74,7 @@ export default function Admin() {
 
     return (
         <div className="min-h-screen bg-paper font-body text-ink">
-            <header className="border-b border-ink/10 bg-paper/85 backdrop-blur-xl">
+            <header className="border-b border-ink/10 bg-paper/85">
                 <div className="mx-auto flex h-24 max-w-[1500px] items-center justify-between px-5 sm:px-8">
                     <a href="/" data-testid="admin-home-link" className="flex items-center gap-3">
                         <img src="/logo-dark.png" alt="TMN logo" className="h-14 w-14 object-contain" />
@@ -159,7 +159,7 @@ export default function Admin() {
 
                         <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
                             {/* customer list */}
-                            <div className="max-h-[65vh] space-y-3 overflow-y-auto rounded-3xl border border-ink/10 bg-white/60 p-4 backdrop-blur-xl">
+                            <div className="max-h-[65vh] space-y-3 overflow-y-auto rounded-3xl border border-ink/10 bg-white/85 p-4">
                                 {customers.length === 0 && (
                                     <p className="p-6 text-center text-sm font-medium text-ink/55">
                                         No customers have registered yet.
@@ -200,7 +200,7 @@ export default function Admin() {
                             </div>
 
                             {/* workspace */}
-                            <div className="rounded-3xl border border-ink/10 bg-white/70 shadow-[0_24px_70px_rgba(10,10,10,0.10)] backdrop-blur-xl">
+                            <div className="rounded-3xl border border-ink/10 bg-white/70 shadow-[0_24px_70px_rgba(10,10,10,0.10)]">
                                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 px-6 py-4">
                                     <div>
                                         {editingName && active ? (

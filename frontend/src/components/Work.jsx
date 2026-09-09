@@ -51,7 +51,7 @@ function WorkCard({ project, index }) {
                         {String(index + 1).padStart(2, "0")}
                     </span>
 
-                    <div className="absolute inset-x-0 bottom-0 flex translate-y-full items-center justify-between gap-3 bg-ink/90 px-5 py-3.5 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-paper backdrop-blur transition-transform duration-500 ease-out group-hover:translate-y-0">
+                    <div className="absolute inset-x-0 bottom-0 flex translate-y-full items-center justify-between gap-3 bg-ink/90 px-5 py-3.5 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-paper transition-transform duration-500 ease-out group-hover:translate-y-0">
                         <span>Like this finish?</span>
                         <span>Tap — quote on WhatsApp</span>
                     </div>

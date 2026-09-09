@@ -346,7 +346,7 @@ export default function ClientsView() {
                     <div
                         key={c.id}
                         data-testid={`client-record-card-${c.email}`}
-                        className="rounded-3xl border border-ink/12 bg-white/60 backdrop-blur-xl"
+                        className="rounded-3xl border border-ink/12 bg-white/60"
                     >
                         <button
                             onClick={() => setOpenId(openId === c.id ? null : c.id)}

@@ -146,7 +146,7 @@ export default function Account() {
 
     return (
         <div className="min-h-screen bg-paper font-body text-ink">
-            <header className="border-b border-ink/10 bg-paper/85 backdrop-blur-xl">
+            <header className="border-b border-ink/10 bg-paper/85">
                 <div className="mx-auto flex h-24 max-w-[1400px] items-center justify-between px-5 sm:px-8">
                     <a href="/" data-testid="account-home-link" className="flex items-center gap-3">
                         <img src="/logo-dark.png" alt="TMN logo" className="h-14 w-14 object-contain" />
@@ -176,7 +176,7 @@ export default function Account() {
                         </h1>
                     </div>
 
-                    <div className="rounded-3xl border border-ink/10 bg-white/70 p-7 shadow-[0_20px_50px_rgba(10,10,10,0.08)] backdrop-blur-xl">
+                    <div className="rounded-3xl border border-ink/10 bg-white/70 p-7 shadow-[0_20px_50px_rgba(10,10,10,0.08)]">
                         <dl className="space-y-4 text-sm font-medium">
                             <div>
                                 <dt className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink/55">
@@ -211,7 +211,7 @@ export default function Account() {
                 </div>
 
                 {/* workspace */}
-                <div className="flex flex-col rounded-3xl border border-ink/10 bg-white/70 shadow-[0_24px_70px_rgba(10,10,10,0.10)] backdrop-blur-xl">
+                <div className="flex flex-col rounded-3xl border border-ink/10 bg-white/70 shadow-[0_24px_70px_rgba(10,10,10,0.10)]">
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 px-7 py-4">
                         <div className="flex gap-2">
                             {TABS.map((t) => (
