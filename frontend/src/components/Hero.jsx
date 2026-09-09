@@ -102,34 +102,37 @@ export default function Hero() {
                         }}
                         className="relative h-56 w-56 sm:h-72 sm:w-72 lg:h-[420px] lg:w-[420px]"
                     >
-                        {/* halo ring — thick diffused emitter */}
+                        {/* halo — bloom from the rim */}
                         <div
-                            className="halo-emitter absolute -inset-1.5 rounded-full"
+                            className="halo-emitter absolute -inset-1 rounded-full"
                             aria-hidden="true"
                         />
-                        {/* halo ring — bright core edge */}
                         <div
-                            className="halo-ring-glow absolute -inset-2 rounded-full"
+                            className="halo-ring-glow absolute -inset-0.5 rounded-full"
                             aria-hidden="true"
                         />
-                        {/* glossy glass disc */}
-                        <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white/55 shadow-[0_30px_70px_rgba(140,140,190,0.4)] ring-1 ring-white/90 backdrop-blur-xl">
+                        {/* frosted glass disc */}
+                        <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white/60 shadow-[0_30px_70px_rgba(140,140,190,0.4)] ring-1 ring-white/80 backdrop-blur-xl">
                             <div
-                                className="pointer-events-none absolute inset-0 shadow-[inset_0_14px_34px_rgba(255,255,255,0.9),inset_0_-22px_44px_rgba(125,125,170,0.28)]"
+                                className="pointer-events-none absolute inset-[5.5%] rounded-full border border-white/50"
                                 aria-hidden="true"
                             />
                             <div
-                                className="pointer-events-none absolute -top-[22%] -left-[18%] h-[72%] w-[86%] rounded-full bg-white/90 blur-2xl"
+                                className="pointer-events-none absolute inset-0 shadow-[inset_0_14px_34px_rgba(255,255,255,0.9),inset_0_-22px_44px_rgba(125,125,170,0.25)]"
+                                aria-hidden="true"
+                            />
+                            <div
+                                className="pointer-events-none absolute -top-[24%] -left-[18%] h-[70%] w-[85%] rounded-full bg-white/80 blur-2xl"
                                 aria-hidden="true"
                             />
                             <img
                                 src="/logo-dark.png"
                                 alt="TMN Decorating & Maintenance logo"
-                                className="relative h-[74%] w-[74%] object-contain"
+                                className="relative h-[57%] w-[57%] object-contain"
                             />
                             {/* light sweep across the glass */}
                             <div
-                                className="glass-sheen pointer-events-none absolute inset-y-[-30%] w-[45%] bg-[linear-gradient(100deg,transparent_10%,rgba(255,255,255,0.7)_50%,transparent_90%)]"
+                                className="glass-sheen pointer-events-none absolute inset-y-[-30%] w-[45%] bg-[linear-gradient(100deg,transparent_10%,rgba(255,255,255,0.65)_50%,transparent_90%)]"
                                 aria-hidden="true"
                             />
                         </div>
