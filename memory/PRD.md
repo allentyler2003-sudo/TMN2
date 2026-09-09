@@ -54,7 +54,7 @@ as a general background with scroll animations. Iterated direction (latest wins)
   minor painting/decorating/maintenance questions and redirects quotes to WhatsApp. The
   assistant knows any domestic trade can be completed by TMN or their qualified tradesman
   friends (single point of contact).
-- Homepage background music: client's uploaded track, continuous loop, homepage only
+- Homepage background music: client's second uploaded track (57s), continuous loop, homepage only
   (mounted in the Site component so login/account/admin pages are silent). Music auto-starts
   as soon as the visitor makes their first interaction (tap/scroll/key — browser autoplay
   policy blocks a true silent start), with a floating speaker toggle above the AI button to
