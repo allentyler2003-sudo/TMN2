@@ -126,32 +126,41 @@
     100% { background-position: 0% 50%; }
 }
 
-/* ---------- luxury white holo halo ---------- */
-.halo-glow {
-    background: radial-gradient(
-        circle,
-        rgba(255, 255, 255, 0.95) 0%,
-        rgba(243, 241, 255, 0.5) 42%,
-        rgba(255, 255, 255, 0) 72%
-    );
-    filter: blur(12px);
-    animation: glow-breathe 5s ease-in-out infinite;
+/* ---------- glowing halo ring + glossy glass ---------- */
+.halo-ring-glow {
+    border: 2.5px solid rgba(255, 255, 255, 0.95);
+    animation: halo-pulse 4s ease-in-out infinite;
 }
-.holo-shimmer {
-    background: conic-gradient(
-        from 0deg,
-        #ffffff,
-        #f1efff,
-        #ecf7ff,
-        #fff0f8,
-        #f0fdf8,
-        #fffff2,
-        #ffffff
-    );
-    -webkit-mask: radial-gradient(circle, transparent 60.5%, black 62%);
-    mask: radial-gradient(circle, transparent 60.5%, black 62%);
+.halo-emitter {
+    border: 3px solid rgba(255, 255, 255, 0.9);
+    filter: blur(14px);
     opacity: 0.9;
-    animation: spin-360 18s linear infinite;
+}
+@keyframes halo-pulse {
+    0%,
+    100% {
+        box-shadow:
+            0 0 18px 2px rgba(255, 255, 255, 0.75),
+            0 0 50px 12px rgba(225, 228, 255, 0.45);
+    }
+    50% {
+        box-shadow:
+            0 0 30px 7px rgba(255, 255, 255, 0.95),
+            0 0 80px 22px rgba(225, 228, 255, 0.7);
+    }
+}
+.glass-sheen {
+    animation: sheen-sweep 7s ease-in-out infinite;
+    transform: translateX(-140%) rotate(10deg);
+}
+@keyframes sheen-sweep {
+    0%,
+    55% {
+        transform: translateX(-140%) rotate(10deg);
+    }
+    100% {
+        transform: translateX(260%) rotate(10deg);
+    }
 }
 @keyframes spin-360 {
     to {
@@ -181,8 +190,9 @@
         animation: none;
     }
     .holo-ring,
-    .holo-shimmer,
-    .halo-glow {
+    .halo-ring-glow,
+    .halo-emitter,
+    .glass-sheen {
         animation: none;
     }
 }

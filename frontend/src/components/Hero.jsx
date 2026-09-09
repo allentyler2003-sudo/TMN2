@@ -102,25 +102,35 @@ export default function Hero() {
                         }}
                         className="relative h-56 w-56 sm:h-72 sm:w-72 lg:h-[420px] lg:w-[420px]"
                     >
-                        {/* soft white halo */}
-                        <div className="halo-glow absolute -inset-10 rounded-full" aria-hidden="true" />
-                        {/* frosted glass ring */}
+                        {/* halo ring — blurred emitter for the glow */}
                         <div
-                            className="absolute -inset-3 rounded-full bg-white/25 ring-1 ring-white/70 backdrop-blur-[3px]"
+                            className="halo-emitter absolute -inset-4 rounded-full"
                             aria-hidden="true"
                         />
-                        {/* holographic shimmer ring */}
-                        <div className="holo-shimmer absolute -inset-3 rounded-full" aria-hidden="true" />
-                        {/* white glass disc */}
-                        <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-gradient-to-b from-white via-white to-[#f3f1ec] shadow-[0_25px_70px_rgba(150,150,190,0.35)] ring-2 ring-white/90">
+                        {/* halo ring — crisp glowing line */}
+                        <div
+                            className="halo-ring-glow absolute -inset-4 rounded-full"
+                            aria-hidden="true"
+                        />
+                        {/* glossy glass disc */}
+                        <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white/55 shadow-[0_30px_70px_rgba(140,140,190,0.4)] ring-1 ring-white/90 backdrop-blur-xl">
                             <div
-                                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_28%_0%,rgba(255,255,255,0.95),transparent_55%)]"
+                                className="pointer-events-none absolute inset-0 shadow-[inset_0_14px_34px_rgba(255,255,255,0.9),inset_0_-22px_44px_rgba(125,125,170,0.28)]"
+                                aria-hidden="true"
+                            />
+                            <div
+                                className="pointer-events-none absolute -top-[22%] -left-[18%] h-[72%] w-[86%] rounded-full bg-white/90 blur-2xl"
                                 aria-hidden="true"
                             />
                             <img
                                 src="/logo-dark.png"
                                 alt="TMN Decorating & Maintenance logo"
                                 className="relative h-[74%] w-[74%] object-contain"
+                            />
+                            {/* light sweep across the glass */}
+                            <div
+                                className="glass-sheen pointer-events-none absolute inset-y-[-30%] w-[45%] bg-[linear-gradient(100deg,transparent_10%,rgba(255,255,255,0.7)_50%,transparent_90%)]"
+                                aria-hidden="true"
                             />
                         </div>
                     </motion.div>
