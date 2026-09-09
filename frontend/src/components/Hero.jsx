@@ -107,19 +107,24 @@ export default function Hero() {
                             className="holofoil-bloom absolute -inset-6 rounded-full"
                             aria-hidden="true"
                         />
-                        {/* soft glow fading outward from the rim */}
+                        {/* soft glow fading outward from the halo */}
                         <div
-                            className="halo-fade absolute -inset-0.5 rounded-full"
+                            className="halo-fade absolute -inset-2 rounded-full"
                             aria-hidden="true"
                         />
-                        {/* shimmer ring on the rim */}
+                        {/* halo emitter — blurred glow hugging the ring */}
                         <div
-                            className="halo-shimmer absolute inset-0 rounded-full"
+                            className="halo-emitter absolute -inset-2 rounded-full"
                             aria-hidden="true"
                         />
-                        {/* thin bright ring connected to the disc edge */}
+                        {/* shimmer on the halo ring */}
                         <div
-                            className="halo-ring absolute inset-0 rounded-full"
+                            className="halo-shimmer absolute -inset-2 rounded-full"
+                            aria-hidden="true"
+                        />
+                        {/* the glowing halo ring, just off the disc edge */}
+                        <div
+                            className="halo-ring absolute -inset-2 rounded-full"
                             aria-hidden="true"
                         />
                         {/* frosted glass disc */}
