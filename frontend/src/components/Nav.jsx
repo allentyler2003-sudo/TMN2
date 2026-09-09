@@ -80,24 +80,24 @@ export default function Nav() {
                     ))}
                 </div>
 
-                <div className="flex items-center gap-5">
+                <div className="flex items-center gap-2.5 sm:gap-4">
                     <a
                         href={accountHref}
                         data-testid={user ? "nav-account-link" : "nav-login-link"}
-                        className="link-sweep font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-ink/70 transition-colors hover:text-ink"
+                        className="whitespace-nowrap rounded-full border border-ink/35 px-3.5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-ink transition-colors duration-300 hover:border-ink hover:bg-ink hover:text-paper sm:px-5"
                     >
                         {user
                             ? user.role === "admin"
                                 ? "Admin"
                                 : "My account"
-                            : "Customer login"}
+                            : "Log in"}
                     </a>
                     <a
                         href={waLink("Hi TMN Decorating & Maintenance — I'd like a quote.")}
                         target="_blank"
                         rel="noopener noreferrer"
                         data-testid="nav-whatsapp-button"
-                        className="group flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-paper transition-transform duration-300 hover:scale-[1.04] active:scale-95"
+                        className="group flex items-center gap-2 whitespace-nowrap rounded-full bg-ink px-4 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-paper transition-transform duration-300 hover:scale-[1.04] active:scale-95 sm:px-5 sm:text-[11px]"
                     >
                         Get a quote
                         <span className="inline-block h-1.5 w-1.5 rounded-full bg-paper transition-transform duration-300 group-hover:scale-150" />
