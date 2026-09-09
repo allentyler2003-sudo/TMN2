@@ -98,5 +98,25 @@ as a general background with scroll animations. Iterated direction (latest wins)
   toggle + preset sets + placeholder on desktop 1440x900 + mobile 390x844, no overflow.
   NOT verifiable until key top-up: a real end-to-end repaint (budget 429).
 
+- GEMINI MIGRATION (owner directive — cost-proofing): ALL customer-facing AI (chat SSE +
+  colour studio) moved off the Emergent Universal Key (now blanked in backend/.env, zero
+  code references) to the owner's OWN Google Gemini free-tier key via the official
+  google-genai SDK, server-side only. Models: gemini-2.5-flash (chat, thinking disabled,
+  max_output_tokens=400, short-answer system prompt) + gemini-2.5-flash-image (colour
+  studio, image-in/image-out). No billing enabled anywhere; no Google Search/Maps/other
+  paid APIs; NO fallback to Emergent.
+- Hard usage caps in Mongo (ai_usage, TTL 48h, enforced BEFORE any model call, survives
+  restarts): 5 AI requests/visitor/rolling-24h + 100 site-wide/rolling-24h; cooldown
+  collection (ai_cooldown) after any Gemini 429 → all rejections return the exact friendly
+  message "Our free AI service has reached today's limit. Please try again tomorrow."
+  (429 JSON so the preview edge passes it through). Visitor id: X-Visitor-Id header
+  (localStorage UUID) or hashed-IP fallback (src/constants/visitor.js).
+- PENDING: GEMINI_API_KEY is EMPTY — owner must create a free key at aistudio.google.com
+  (NO billing), paste into GEMINI_API_KEY= in /app/backend/.env, then the backend needs a
+  supervisor restart; only then can real streaming/chat/image E2E be verified.
+- Verified (testing agent 100% B+F): no Emergent references; caps fire (visitor + site
+  logs); friendly message in chat widget + colour studio on desktop & mobile; auth +
+  homepage + studio UI unchanged; pytest at /app/backend/tests/test_ai_limits.py.
+
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.

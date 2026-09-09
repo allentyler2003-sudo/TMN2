@@ -1,0 +1,19 @@
+{
+  "summary": "Full backend + frontend verification of Gemini-only AI wiring with empty GEMINI_API_KEY. All 6 required checks passed: backend purity (no emergentintegrations/OpenAIClient/EMERGENT_LLM_KEY in server.py), visitor cap regression (6x /api/ai/chat with X-Visitor-Id: qatestvisitor123 all returned 429 with the exact friendly message and backend.err.log shows 'AI gate: visitor qatestvisitor123 hit the daily limit'), colour studio /api/ai/colour returns 429 friendly, auth login OK for customer + admin, homepage 200. Frontend: AI chat widget opens via sparkle button, sends message, shows the friendly limit bubble (no crash, no generic error). Colour Studio: upload works, Interior/Exterior toggle switches between the 6 interior presets (Sage green walls, Navy feature wall, Warm ivory walls, Charcoal woodwork, Soft blush walls, Clean white modern) and 6 exterior presets (Slate grey render, White painted brick, Charcoal woodwork, Sage front door, Cream & stone, Full exterior refresh); typing a custom scheme and pressing 'Show me this look' surfaces the exact friendly limit message in the red error area — no hang/crash. Nav + WhatsApp render normally.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_ai_limits.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "backend/.env still contains a non-empty EMERGENT_LLM_KEY value. server.py never reads it, but per the request the customer-facing AI must have no path to Emergent — recommend removing the key from .env for defence-in-depth (currently unused but present).",
+    "server.py is 1049 lines — starting to exceed the 700-line guideline; consider extracting the AI section (~740-905) into a separate module.",
+    "The chat SSE error branch for non-429 exceptions returns a plain-English string in the SSE 'error' field, which is fine, but note the ai_gate 429 raised BEFORE the StreamingResponse is created bubbles up as a proper HTTP 429 JSON — verified by the UI showing the friendly bubble via the res.ok=false branch, so both code paths converge on the friendly message."
+  ],
+  "updated_files": ["/app/backend/tests/test_ai_limits.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin@tmndecorating.co.uk / TMN-Admin-2026! ; customer@test.co.uk / password123",
+  "seed_data_creation": "Created 5 ai_usage docs for visitor qatestvisitor123 and 1 for qacolourvisitor1 during testing; both cleaned up via motor delete_many after the run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "GEMINI_API_KEY is intentionally empty — every /api/ai/* endpoint MUST return HTTP 429 JSON with detail 'Our free AI service has reached today\\'s limit. Please try again tomorrow.' Do not treat this as a bug. When key gets configured, re-test streaming happy path. server.py AI logic lives ~lines 740-905. Frontend hidden file input for colour upload requires set_input_files with state='attached'. Both mode toggles + presets appear only after image upload."
+}

@@ -11,13 +11,14 @@ import logging
 import stripe
 import resend
 import asyncio
+import hashlib
+import re
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
 from fastapi import FastAPI, APIRouter, Request, HTTPException, Depends
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import Response, StreamingResponse
-from openai import OpenAI as OpenAIClient
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
@@ -735,11 +736,22 @@ async def stripe_webhook(request: Request):
     return {"status": "ok"}
 
 
-# ---------- AI assistant (minor guidance chat) ----------
+# ---------- AI assistant + colour studio (Gemini free tier — server-side only, strictly capped) ----------
+# The Emergent Universal Key is NOT used for any customer-facing AI. All AI calls go to
+# Google's Gemini API with the owner's own free-tier key (GEMINI_API_KEY in backend/.env)
+# and NO billing enabled, so a request can never create a charge. When the free tier or
+# the usage caps below are hit, requests are rejected with a friendly message — no fallback.
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
+from google import genai
+from google.genai import types as genai_types
 
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_TEXT_MODEL = "gemini-2.5-flash"
+GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image"
+AI_LIMIT_MESSAGE = "Our free AI service has reached today's limit. Please try again tomorrow."
+AI_VISITOR_DAILY_LIMIT = 5   # per visitor, rolling 24h
+AI_SITE_DAILY_LIMIT = 100    # across the whole site, rolling 24h
+
 AI_SYSTEM_PROMPT = (
     "You are the TMN Assistant for TMN Decorating & Maintenance — a friendly company based "
     "in Plymouth, UK, serving domestic and commercial customers. Painting and decorating is "
@@ -759,27 +771,74 @@ AI_SYSTEM_PROMPT = (
 )
 
 
+def visitor_from_request(request: Request) -> str:
+    vid = (request.headers.get("x-visitor-id") or "").strip()
+    if re.fullmatch(r"[A-Za-z0-9_-]{8,64}", vid):
+        return vid
+    ip = request.client.host if request.client else "unknown"
+    return "ip-" + hashlib.sha256(ip.encode()).hexdigest()[:16]
+
+
+async def ai_gate(visitor_id: str, kind: str):
+    """Hard usage cap, enforced BEFORE any model call. Attempts are recorded in Mongo so
+    the limits survive restarts. Raises 429 with a friendly message when a cap is hit."""
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(hours=24)
+    if await db.ai_usage.count_documents({"created_at": {"$gte": cutoff}}) >= AI_SITE_DAILY_LIMIT:
+        logger.warning("AI gate: site-wide daily limit reached (%s/day)", AI_SITE_DAILY_LIMIT)
+        raise HTTPException(status_code=429, detail=AI_LIMIT_MESSAGE)
+    if await db.ai_usage.count_documents({"visitor_id": visitor_id, "created_at": {"$gte": cutoff}}) >= AI_VISITOR_DAILY_LIMIT:
+        logger.warning("AI gate: visitor %s hit the daily limit", visitor_id)
+        raise HTTPException(status_code=429, detail=AI_LIMIT_MESSAGE)
+    if await db.ai_cooldown.count_documents({"expires_at": {"$gte": now}}):
+        logger.warning("AI gate: cooldown active after a free-tier rejection")
+        raise HTTPException(status_code=429, detail=AI_LIMIT_MESSAGE)
+    await db.ai_usage.insert_one({"visitor_id": visitor_id, "kind": kind, "created_at": now})
+
+
+async def ai_set_cooldown(seconds: int = 60):
+    await db.ai_cooldown.insert_one({"expires_at": datetime.now(timezone.utc) + timedelta(seconds=seconds)})
+
+
+def gemini_rate_limited(e: Exception) -> bool:
+    return getattr(e, "code", None) == 429 or "RESOURCE_EXHAUSTED" in str(e) or "429" in str(e)
+
+
+def require_gemini_key():
+    if not GEMINI_API_KEY:
+        logger.error("GEMINI_API_KEY is not configured — AI request blocked (no fallback is used)")
+        raise HTTPException(status_code=429, detail=AI_LIMIT_MESSAGE)
+
+
 class AiChatInput(BaseModel):
     session_id: str = Field(min_length=6, max_length=64)
     message: str = Field(min_length=1, max_length=1000)
 
 
 @api_router.post("/ai/chat")
-async def ai_chat(input: AiChatInput):
+async def ai_chat(input: AiChatInput, request: Request):
+    visitor_id = visitor_from_request(request)
+    await ai_gate(visitor_id, "chat")
+    require_gemini_key()
+
     async def generate():
         full = ""
         try:
-            chat = LlmChat(
-                api_key=EMERGENT_LLM_KEY,
-                session_id=input.session_id,
-                system_message=AI_SYSTEM_PROMPT,
-            ).with_model("openai", "gpt-5.4")
-            async for event in chat.stream_message(UserMessage(text=input.message)):
-                if isinstance(event, TextDelta):
-                    full += event.content
-                    yield f"data: {json.dumps({'delta': event.content})}\n\n"
-                elif isinstance(event, StreamDone):
-                    break
+            gclient = genai.Client(api_key=GEMINI_API_KEY)
+            stream = client_stream = gclient.aio.models.generate_content_stream(
+                model=GEMINI_TEXT_MODEL,
+                contents=input.message,
+                config=genai_types.GenerateContentConfig(
+                    system_instruction=AI_SYSTEM_PROMPT,
+                    max_output_tokens=400,
+                    temperature=0.6,
+                    thinking_config=genai_types.ThinkingConfig(thinking_budget=0),
+                ),
+            )
+            async for chunk in client_stream:
+                if chunk.text:
+                    full += chunk.text
+                    yield f"data: {json.dumps({'delta': chunk.text})}\n\n"
             yield f"data: {json.dumps({'done': True})}\n\n"
             now = datetime.now(timezone.utc).isoformat()
             await db.ai_chats.insert_one({"session_id": input.session_id, "role": "user", "text": input.message, "created_at": now})
@@ -787,7 +846,11 @@ async def ai_chat(input: AiChatInput):
                 await db.ai_chats.insert_one({"session_id": input.session_id, "role": "assistant", "text": full, "created_at": datetime.now(timezone.utc).isoformat()})
         except Exception as e:
             logger.error("AI chat error: %s", e)
-            yield f"data: {json.dumps({'error': 'The assistant is unavailable right now — please WhatsApp us on 07736 325643 instead.'})}\n\n"
+            if gemini_rate_limited(e):
+                await ai_set_cooldown(60)
+                yield f"data: {json.dumps({'error': AI_LIMIT_MESSAGE})}\n\n"
+            else:
+                yield f"data: {json.dumps({'error': 'The assistant is unavailable right now — please WhatsApp us on 07736 325643 instead.'})}\n\n"
 
     return StreamingResponse(
         generate(),
@@ -805,7 +868,10 @@ class ColourRequest(BaseModel):
 
 
 @api_router.post("/ai/colour")
-async def ai_colour(body: ColourRequest):
+async def ai_colour(body: ColourRequest, request: Request):
+    visitor_id = visitor_from_request(request)
+    await ai_gate(visitor_id, "colour")
+    require_gemini_key()
     if not body.image.startswith("data:image/"):
         raise HTTPException(status_code=400, detail="Please upload a valid image")
     try:
@@ -831,22 +897,29 @@ async def ai_colour(body: ColourRequest):
             "professional quality."
         )
     try:
-        client = OpenAIClient(
-            api_key=EMERGENT_LLM_KEY,
-            base_url=f"{os.environ.get('INTEGRATION_PROXY_URL', 'https://integrations.emergentagent.com')}/llm",
-            timeout=280,
-            max_retries=0,
+        gclient = genai.Client(api_key=GEMINI_API_KEY)
+        res = await gclient.aio.models.generate_content(
+            model=GEMINI_IMAGE_MODEL,
+            contents=[
+                genai_types.Part.from_bytes(data=png_bytes, mime_type="image/png"),
+                styled_prompt,
+            ],
         )
-        res = await asyncio.to_thread(
-            client.images.edit,
-            model="gpt-image-1",
-            image=("room.png", png_bytes),
-            prompt=styled_prompt,
-            size="1024x1024",
-        )
-        out_b64 = res.data[0].b64_json
+        out_b64 = ""
+        for part in res.candidates[0].content.parts or []:
+            inline = getattr(part, "inline_data", None)
+            if inline and inline.data:
+                out_b64 = inline.data if isinstance(inline.data, str) else base64.b64encode(inline.data).decode()
+                break
+        if not out_b64:
+            raise RuntimeError("model returned no image")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("AI colour edit failed: %s", e)
+        if gemini_rate_limited(e):
+            await ai_set_cooldown(120)
+            raise HTTPException(status_code=429, detail=AI_LIMIT_MESSAGE)
         # 4xx so the preview edge passes the JSON detail through (5xx gets replaced by an HTML error page)
         raise HTTPException(status_code=429, detail="The colour studio is busy right now — please try again in a moment")
 
@@ -948,6 +1021,8 @@ async def startup():
     await db.users.create_index("email", unique=True)
     await db.messages.create_index("customer_id")
     await db.login_attempts.create_index("identifier")
+    await db.ai_usage.create_index("created_at", expireAfterSeconds=172800)
+    await db.ai_usage.create_index("visitor_id")
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@tmndecorating.co.uk")
     admin_password = os.environ.get("ADMIN_PASSWORD", "TMN-Admin-2026!")
     existing = await db.users.find_one({"email": admin_email})

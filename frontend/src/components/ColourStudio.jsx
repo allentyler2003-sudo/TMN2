@@ -3,6 +3,7 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import { Building2, ChevronsLeftRight, Download, Home, Mail, RefreshCw, Sparkles, Upload, Wand2 } from "lucide-react";
 import { waLink } from "@/constants/site";
+import { getVisitorId } from "@/constants/visitor";
 import { FadeUp, EASE } from "@/components/Reveal";
 
 const PRESETS = {
@@ -145,7 +146,7 @@ export default function ColourStudio() {
             const { data } = await axios.post(
                 `${API_BASE}/ai/colour`,
                 { image, prompt, mode },
-                { withCredentials: true, timeout: 240000 }
+                { withCredentials: true, timeout: 240000, headers: { "X-Visitor-Id": getVisitorId() } }
             );
             setResult({ image: data.image, prompt });
         } catch (err) {

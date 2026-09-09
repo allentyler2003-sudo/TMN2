@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X, Send } from "lucide-react";
+import { getVisitorId } from "@/constants/visitor";
 
 const API_BASE = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -40,10 +41,23 @@ export default function AiChat() {
         try {
             const res = await fetch(`${API_BASE}/ai/chat`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "X-Visitor-Id": getVisitorId() },
                 credentials: "include",
                 body: JSON.stringify({ session_id: sessionId(), message: text }),
             });
+            if (!res.ok) {
+                let msg = "The assistant is unavailable right now — please WhatsApp us on 07736 325643 instead.";
+                try {
+                    const data = await res.json();
+                    if (data?.detail) msg = data.detail;
+                } catch {}
+                setMessages((m) => {
+                    const copy = [...m];
+                    copy[copy.length - 1] = { role: "assistant", text: msg };
+                    return copy;
+                });
+                return;
+            }
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
             let buffer = "";
