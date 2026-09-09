@@ -102,24 +102,24 @@ export default function Hero() {
                         }}
                         className="relative h-56 w-56 sm:h-72 sm:w-72 lg:h-[420px] lg:w-[420px]"
                     >
-                        {/* extremely faint outer halo — light radiating */}
+                        {/* iridescent holofoil bloom — melts into the holo background */}
                         <div
-                            className="halo-outer absolute -inset-9 rounded-full"
+                            className="holofoil-bloom absolute -inset-6 rounded-full"
                             aria-hidden="true"
                         />
-                        {/* soft glow fading smoothly outward from the ring */}
+                        {/* soft glow fading outward from the rim */}
                         <div
-                            className="halo-fade absolute -inset-4 rounded-full"
+                            className="halo-fade absolute -inset-0.5 rounded-full"
                             aria-hidden="true"
                         />
-                        {/* iridescent shimmer on the ring — white dominant */}
+                        {/* shimmer ring on the rim */}
                         <div
-                            className="halo-shimmer absolute -inset-4 rounded-full"
+                            className="halo-shimmer absolute inset-0 rounded-full"
                             aria-hidden="true"
                         />
-                        {/* thin bright white ring */}
+                        {/* thin bright ring connected to the disc edge */}
                         <div
-                            className="halo-ring absolute -inset-4 rounded-full"
+                            className="halo-ring absolute inset-0 rounded-full"
                             aria-hidden="true"
                         />
                         {/* frosted glass disc */}

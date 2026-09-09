@@ -128,8 +128,10 @@
 
 /* ---------- elegant white halo ring (thin, shimmering, slow) ---------- */
 .halo-ring {
-    border: 1.5px solid rgba(255, 255, 255, 0.95);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.35);
+    border: 2px solid rgba(255, 255, 255, 1);
+    box-shadow:
+        0 0 14px rgba(255, 255, 255, 0.85),
+        0 0 0 1px rgba(150, 150, 190, 0.28);
     animation: halo-breathe 8s ease-in-out infinite;
 }
 .halo-shimmer {
@@ -150,14 +152,24 @@
     animation: shimmer-drift 36s linear infinite, halo-breathe 8s ease-in-out infinite;
 }
 .halo-fade {
-    border: 7px solid rgba(255, 255, 255, 0.6);
+    border: 8px solid rgba(255, 255, 255, 0.55);
     filter: blur(18px);
     animation: halo-breathe 8s ease-in-out infinite reverse;
 }
-.halo-outer {
-    border: 1.5px solid rgba(255, 255, 255, 0.3);
-    filter: blur(9px);
-    animation: halo-breathe-soft 10s ease-in-out infinite;
+.holofoil-bloom {
+    background: conic-gradient(
+        from 0deg,
+        #d3d7ff,
+        #cceaff,
+        #ffdcef,
+        #d5f5e4,
+        #fff8d4,
+        #e6ddff,
+        #d3d7ff
+    );
+    filter: blur(34px);
+    opacity: 0.55;
+    animation: shimmer-drift 40s linear infinite, halo-breathe 9s ease-in-out infinite;
 }
 @keyframes halo-breathe {
     0%,
@@ -225,7 +237,7 @@
     .halo-ring,
     .halo-shimmer,
     .halo-fade,
-    .halo-outer,
+    .holofoil-bloom,
     .glass-sheen {
         animation: none;
     }
