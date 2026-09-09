@@ -4,18 +4,40 @@ import { Music, VolumeX } from "lucide-react";
 
 export default function HomeMusic() {
     const audioRef = useRef(null);
+    const mutedByUser = useRef(false);
     const [playing, setPlaying] = useState(false);
 
     useEffect(() => {
         const v = audioRef.current;
         if (!v) return;
         v.volume = 0.3;
-        // try to autoplay; browsers may block until first tap — the button covers that
+
+        const start = () => {
+            if (mutedByUser.current) return;
+            v.play()
+                .then(() => setPlaying(true))
+                .catch(() => {});
+        };
+
+        // try to start straight away; browsers may block until the first gesture
         v.play()
             .then(() => setPlaying(true))
-            .catch(() => setPlaying(false));
+            .catch(() => {
+                // first tap, scroll or keypress anywhere unmutes the music
+                window.addEventListener("pointerdown", start, { passive: true });
+                window.addEventListener("touchstart", start, { passive: true });
+                window.addEventListener("wheel", start, { passive: true });
+                window.addEventListener("scroll", start, { passive: true });
+                window.addEventListener("keydown", start, { passive: true });
+            });
+
         return () => {
             v.pause();
+            window.removeEventListener("pointerdown", start);
+            window.removeEventListener("touchstart", start);
+            window.removeEventListener("wheel", start);
+            window.removeEventListener("scroll", start);
+            window.removeEventListener("keydown", start);
         };
     }, []);
 
@@ -23,13 +45,15 @@ export default function HomeMusic() {
         const v = audioRef.current;
         if (!v) return;
         if (playing) {
+            mutedByUser.current = true;
             v.pause();
             setPlaying(false);
         } else {
+            mutedByUser.current = false;
             v.volume = 0.3;
             v.play()
                 .then(() => setPlaying(true))
-                .catch(() => setPlaying(false));
+                .catch(() => {});
         }
     };
 

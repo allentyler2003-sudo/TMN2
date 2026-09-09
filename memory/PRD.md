@@ -54,9 +54,11 @@ as a general background with scroll animations. Iterated direction (latest wins)
   minor painting/decorating/maintenance questions and redirects quotes to WhatsApp. The
   assistant knows any domestic trade can be completed by TMN or their qualified tradesman
   friends (single point of contact).
-- Homepage background music: client's uploaded track loops on the homepage only (mounted in
-  the Site component so login/account/admin pages are silent), with a floating speaker toggle
-  stacked above the AI button; autoplay attempted, graceful tap-to-start fallback.
+- Homepage background music: client's uploaded track, continuous loop, homepage only
+  (mounted in the Site component so login/account/admin pages are silent). Music auto-starts
+  as soon as the visitor makes their first interaction (tap/scroll/key — browser autoplay
+  policy blocks a true silent start), with a floating speaker toggle above the AI button to
+  turn it off; once muted by the visitor it stays off until they re-enable it.
 - Services now has chapter 05 "Any Trade, One Call" describing the same full-trade message.
 - Verified: desktop (1440) + mobile (390) screenshots, no overflow, no blank sections; full
   curl verification of auth, chat, jobs, notes, invoices incl. role enforcement (403/401);
