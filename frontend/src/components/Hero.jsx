@@ -103,12 +103,18 @@ export default function Hero() {
                         className="relative h-56 w-56 sm:h-72 sm:w-72 lg:h-[420px] lg:w-[420px]"
                     >
                         {/* luxury gloss glass disc + circular logo, baked into one image */}
-                        <img
+                        <div
                             data-testid="hero-logo-badge"
-                            src="/logo-disc.png"
-                            alt="TMN Decorating & Maintenance logo"
-                            className="h-full w-full object-contain"
-                        />
+                            className="relative h-full w-full"
+                        >
+                            <img
+                                src="/logo-disc.png"
+                                alt="TMN Decorating & Maintenance logo"
+                                className="h-full w-full object-contain"
+                            />
+                            {/* periodic car-badge glint — circularly masked, opacity-only */}
+                            <div className="badge-glint absolute inset-0" aria-hidden="true" />
+                        </div>
                     </motion.div>
                 </motion.div>
             </div>

@@ -211,13 +211,31 @@
     animation: sheen-sweep 7s ease-in-out infinite;
     transform: translateX(-140%) rotate(10deg);
 }
-@keyframes sheen-sweep {
+/* periodic glint across the badge — circularly masked, opacity-only (Android-safe) */
+.badge-glint {
+    background: linear-gradient(
+        115deg,
+        transparent 32%,
+        rgba(255, 255, 255, 0.9) 47%,
+        rgba(255, 255, 255, 0.35) 54%,
+        transparent 66%
+    );
+    -webkit-mask: radial-gradient(farthest-side, black 0 49%, transparent 50%);
+    mask: radial-gradient(farthest-side, black 0 49%, transparent 50%);
+    opacity: 0;
+    animation: badge-glint 7s ease-in-out infinite;
+}
+@keyframes badge-glint {
     0%,
     55% {
-        transform: translateX(-140%) rotate(10deg);
+        opacity: 0;
     }
+    72% {
+        opacity: 0.95;
+    }
+    86%,
     100% {
-        transform: translateX(260%) rotate(10deg);
+        opacity: 0;
     }
 }
 @keyframes spin-360 {
@@ -248,8 +266,7 @@
         animation: none;
     }
     .halo-ring,
-    .halo-iridescent,
-    .glass-sheen {
+    .badge-glint {
         animation: none;
     }
 }
