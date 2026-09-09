@@ -100,7 +100,7 @@ export default function Hero() {
                             scale: { duration: 1, delay: 0.6 },
                             y: { duration: 6, repeat: Infinity, ease: "easeInOut" },
                         }}
-                        className="relative h-56 w-56 sm:h-72 sm:w-72 lg:h-[420px] lg:w-[420px]"
+                        className="relative h-48 w-48 sm:h-64 sm:w-64 lg:h-[380px] lg:w-[380px]"
                     >
                         {/* luxury gloss glass disc + circular logo, baked into one image */}
                         <div
