@@ -8,20 +8,20 @@ import { FadeUp, EASE } from "@/components/Reveal";
 
 const PRESETS = {
     interior: [
-        { label: "Sage green walls", prompt: "Repaint the main walls a warm sage green, keep the woodwork white" },
-        { label: "Navy feature wall", prompt: "Paint the main feature wall a deep navy blue, keep other walls light" },
-        { label: "Warm ivory walls", prompt: "Repaint the walls a warm ivory white, keep woodwork bright white" },
-        { label: "Charcoal woodwork", prompt: "Repaint the woodwork — skirting, doors and frames — a dark charcoal grey, keep the walls as they are" },
-        { label: "Soft blush walls", prompt: "Repaint the walls a soft blush pink, keep woodwork white" },
-        { label: "Clean white modern", prompt: "Repaint every wall a bright clean white and all woodwork pure white" },
+        { label: "Sage green walls", prompt: "warm sage green painted walls" },
+        { label: "Navy feature wall", prompt: "one deep navy blue painted feature wall, light neutral walls" },
+        { label: "Warm ivory walls", prompt: "warm ivory white painted walls" },
+        { label: "Charcoal woodwork", prompt: "dark charcoal grey painted woodwork, skirting boards and doors" },
+        { label: "Soft blush walls", prompt: "soft blush pink painted walls" },
+        { label: "Clean white modern", prompt: "bright clean white painted walls, pure white woodwork" },
     ],
     exterior: [
-        { label: "Slate grey render", prompt: "Repaint the exterior render a smart slate grey, keep the woodwork, doors and window frames white" },
-        { label: "White painted brick", prompt: "Paint the exterior brickwork a clean heritage white, keep the doors and woodwork classic black" },
-        { label: "Charcoal woodwork", prompt: "Repaint all the exterior woodwork — doors, window frames, fascias and soffits — a deep charcoal grey, keep the walls as they are" },
-        { label: "Sage front door", prompt: "Repaint just the front door and window frames a heritage sage green, keep every other surface exactly as it is" },
-        { label: "Cream & stone", prompt: "Repaint the outside walls a warm cream stone tone and the woodwork a dark anthracite grey" },
-        { label: "Full exterior refresh", prompt: "Repaint the whole exterior in a premium scheme — walls in warm white, all woodwork, doors and trims in smart anthracite grey" },
+        { label: "Slate grey render", prompt: "slate grey painted render walls" },
+        { label: "White painted brick", prompt: "heritage white painted brickwork" },
+        { label: "Charcoal woodwork", prompt: "deep charcoal grey painted exterior woodwork, doors and window frames" },
+        { label: "Sage front door", prompt: "heritage sage green painted front door" },
+        { label: "Cream & stone", prompt: "warm cream painted outside walls, anthracite grey woodwork" },
+        { label: "Full exterior refresh", prompt: "freshly painted warm white exterior walls, anthracite grey woodwork and doors" },
     ],
 };
 
@@ -143,15 +143,36 @@ export default function ColourStudio() {
         setResult(null);
         setEmailState(null);
         try {
-            const { data } = await axios.post(
+            const { data: start } = await axios.post(
                 `${API_BASE}/ai/colour`,
                 { image, prompt, mode },
-                { withCredentials: true, timeout: 240000, headers: { "X-Visitor-Id": getVisitorId() } }
+                { withCredentials: true, timeout: 60000, headers: { "X-Visitor-Id": getVisitorId() } }
             );
-            setResult({ image: data.image, prompt });
+            // generation runs server-side for a couple of minutes — poll for the result
+            const deadline = Date.now() + 600000;
+            let doneImage = null;
+            while (Date.now() < deadline) {
+                await new Promise((r) => setTimeout(r, 3000));
+                const { data: st } = await axios.get(
+                    `${API_BASE}/ai/colour/result/${start.job_id}`,
+                    { withCredentials: true, timeout: 30000 }
+                );
+                if (st.status === "done") {
+                    doneImage = st.image;
+                    break;
+                }
+                if (st.status === "failed" || st.status === "unknown") {
+                    throw new Error("The colour studio is busy right now — please try again in a moment");
+                }
+            }
+            if (!doneImage) {
+                throw new Error("The colour studio is busy right now — please try again in a moment");
+            }
+            setResult({ image: doneImage, prompt });
         } catch (err) {
             setError(
                 err.response?.data?.detail ||
+                    err.message ||
                     "Something went wrong — please try again, or WhatsApp us and we'll do it for you."
             );
         } finally {
@@ -378,7 +399,7 @@ export default function ColourStudio() {
                                         {busy ? (
                                             <>
                                                 <RefreshCw className="h-4 w-4 animate-spin" />
-                                                Painting… up to a minute
+                                                Painting… this can take a couple of minutes
                                             </>
                                         ) : (
                                             <>

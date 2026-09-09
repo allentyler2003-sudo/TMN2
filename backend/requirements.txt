@@ -29,3 +29,9 @@ emergentintegrations==0.2.0
 stripe>=14.0.0
 resend>=2.0.0
 google-genai==2.22.0
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.0+cpu
+diffusers==0.40.0
+transformers==5.17.0
+accelerate==1.15.0
+safetensors==0.8.0

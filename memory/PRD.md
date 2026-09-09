@@ -118,5 +118,28 @@ as a general background with scroll animations. Iterated direction (latest wins)
   logs); friendly message in chat widget + colour studio on desktop & mobile; auth +
   homepage + studio UI unchanged; pytest at /app/backend/tests/test_ai_limits.py.
 
+- ZERO-COST SELF-HOSTED AI (owner chose option A — replaced the Gemini plan entirely):
+  all AI now runs open-source models INSIDE the server. NO external AI service, NO API
+  keys, NO usage caps, NOTHING that can bill. Emergent key + Gemini key both removed from
+  use; daily-limit logic deleted (per owner).
+  • Assistant chat: Qwen2.5-0.5B-Instruct (transformers, local) — streamed via job worker,
+    ~25s end-to-end through the public URL. Answer quality is 0.5B-level (basic).
+  • Colour studio: SD1.5 (StableDiffusionInpaintPipeline) + AUTO WALL MASK (numpy/PIL edge
+    analysis: largest smooth region, upper 62% band, feathered) + pixel compositing
+    (out-of-mask = original photo, structure guaranteed). Strength 0.6. Presets rewritten
+    as SD-native noun phrases.
+  • Architecture (8GB pod cap): heavy models run as SHORT-LIVED subprocess workers
+    (ai_worker.py, ~4.8GB RSS) that load→generate→exit; backend never holds model memory.
+    Critical: the public edge cuts HTTP responses at ~60s, so POST /api/ai/colour now
+    returns {job_id} instantly and the page polls GET /api/ai/colour/result/{id}
+    (frontend polls every 3s, 10min deadline).
+  • Verified: full external E2E (job 0.3s → done 225s → 170KB PNG), chat external E2E
+    (25s streamed), UI flow (upload → generate → spinner), memory 2.7GB idle / 7.9GB peak
+    (worker survived), auth unaffected.
+  • HONEST LIMITATION (owner informed): SD1.5 does not follow instructions like paid
+    instruct models — wall-colour fidelity varies (on the synthetic test image it painted
+    furniture blue instead of walls). Needs tuning with real room photos; not equivalent
+    to gpt-image-1/nano-banana quality. Chat answers are basic (0.5B model).
+
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.
