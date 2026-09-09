@@ -102,16 +102,25 @@ export default function Hero() {
                         }}
                         className="relative h-56 w-56 sm:h-72 sm:w-72 lg:h-[420px] lg:w-[420px]"
                     >
-                        {/* breathing holo glow behind */}
-                        <div className="holo-glow absolute -inset-8 rounded-full" aria-hidden="true" />
-                        {/* rotating iridescent ring */}
-                        <div className="holo-ring absolute -inset-2.5 rounded-full" aria-hidden="true" />
-                        {/* white disc */}
-                        <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white shadow-[0_35px_60px_rgba(10,10,10,0.18)] ring-1 ring-ink/10">
+                        {/* soft white halo */}
+                        <div className="halo-glow absolute -inset-10 rounded-full" aria-hidden="true" />
+                        {/* frosted glass ring */}
+                        <div
+                            className="absolute -inset-3 rounded-full bg-white/25 ring-1 ring-white/70 backdrop-blur-[3px]"
+                            aria-hidden="true"
+                        />
+                        {/* holographic shimmer ring */}
+                        <div className="holo-shimmer absolute -inset-3 rounded-full" aria-hidden="true" />
+                        {/* white glass disc */}
+                        <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-gradient-to-b from-white via-white to-[#f3f1ec] shadow-[0_25px_70px_rgba(150,150,190,0.35)] ring-2 ring-white/90">
+                            <div
+                                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_28%_0%,rgba(255,255,255,0.95),transparent_55%)]"
+                                aria-hidden="true"
+                            />
                             <img
                                 src="/logo-dark.png"
                                 alt="TMN Decorating & Maintenance logo"
-                                className="h-[74%] w-[74%] object-contain"
+                                className="relative h-[74%] w-[74%] object-contain"
                             />
                         </div>
                     </motion.div>

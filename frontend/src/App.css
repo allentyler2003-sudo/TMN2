@@ -126,34 +126,32 @@
     100% { background-position: 0% 50%; }
 }
 
-/* ---------- holo badge ring & glow ---------- */
-.holo-ring {
+/* ---------- luxury white holo halo ---------- */
+.halo-glow {
+    background: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(243, 241, 255, 0.5) 42%,
+        rgba(255, 255, 255, 0) 72%
+    );
+    filter: blur(12px);
+    animation: glow-breathe 5s ease-in-out infinite;
+}
+.holo-shimmer {
     background: conic-gradient(
         from 0deg,
-        #b9a8ff,
-        #8fd0ff,
-        #ffc2e3,
-        #bdf0dc,
-        #fff3b8,
-        #b9a8ff
+        #ffffff,
+        #f1efff,
+        #ecf7ff,
+        #fff0f8,
+        #f0fdf8,
+        #fffff2,
+        #ffffff
     );
-    -webkit-mask: radial-gradient(circle, transparent 60%, black 62%);
-    mask: radial-gradient(circle, transparent 60%, black 62%);
-    animation: spin-360 16s linear infinite;
-}
-.holo-glow {
-    background: conic-gradient(
-        from 90deg,
-        #b9a8ff,
-        #8fd0ff,
-        #ffc2e3,
-        #bdf0dc,
-        #fff3b8,
-        #b9a8ff
-    );
-    filter: blur(40px);
-    opacity: 0.5;
-    animation: spin-360 24s linear infinite reverse, glow-breathe 5s ease-in-out infinite;
+    -webkit-mask: radial-gradient(circle, transparent 60.5%, black 62%);
+    mask: radial-gradient(circle, transparent 60.5%, black 62%);
+    opacity: 0.9;
+    animation: spin-360 18s linear infinite;
 }
 @keyframes spin-360 {
     to {
@@ -163,10 +161,12 @@
 @keyframes glow-breathe {
     0%,
     100% {
-        opacity: 0.4;
+        opacity: 0.55;
+        transform: scale(1);
     }
     50% {
-        opacity: 0.7;
+        opacity: 0.9;
+        transform: scale(1.05);
     }
 }
 
@@ -181,7 +181,8 @@
         animation: none;
     }
     .holo-ring,
-    .holo-glow {
+    .holo-shimmer,
+    .halo-glow {
         animation: none;
     }
 }
