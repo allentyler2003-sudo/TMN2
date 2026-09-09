@@ -45,8 +45,8 @@ export default function Nav() {
             initial={{ y: -90, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.9, ease: EASE, delay: 0.15 }}
-            className={`fixed inset-x-0 top-0 z-50 bg-paper/85 transition-shadow duration-500 ${
-                scrolled ? "shadow-[0_1px_0_rgba(10,10,10,0.12),0_12px_40px_rgba(10,10,10,0.06)]" : ""
+            className={`fixed inset-x-0 top-0 z-50 nav-glass transition-shadow duration-500 ${
+                scrolled ? "nav-glass-scrolled" : ""
             }`}
         >
             <nav className="mx-auto flex h-24 max-w-[1600px] items-center justify-between px-5 sm:px-8 lg:px-12">
