@@ -151,30 +151,38 @@
     opacity: 0.7;
     animation: shimmer-drift 36s linear infinite, halo-breathe 8s ease-in-out infinite;
 }
-.halo-fade {
-    border: 10px solid rgba(255, 255, 255, 0.55);
-    filter: blur(22px);
-    animation: halo-breathe 8s ease-in-out infinite reverse;
-}
-.halo-emitter {
-    border: 5px solid rgba(255, 255, 255, 0.95);
-    filter: blur(9px);
-    opacity: 0.95;
-}
-.holofoil-bloom {
+/* ---------- iridescent rainbow holofoil halo ---------- */
+.halo-iridescent {
     background: conic-gradient(
-        from 0deg,
-        #d3d7ff,
-        #cceaff,
-        #ffdcef,
-        #d5f5e4,
-        #fff8d4,
-        #e6ddff,
-        #d3d7ff
+        from 20deg,
+        #ffffff,
+        #cdd4ff,
+        #ffffff,
+        #b5e2ff,
+        #ffffff,
+        #ffc9e5,
+        #ffffff,
+        #c2f2dd,
+        #fffbe8,
+        #ffffff
     );
-    filter: blur(34px);
-    opacity: 0.55;
-    animation: shimmer-drift 40s linear infinite, halo-breathe 9s ease-in-out infinite;
+    -webkit-mask: radial-gradient(
+        farthest-side,
+        transparent 0 84%,
+        rgba(0, 0, 0, 0.45) 91%,
+        rgba(0, 0, 0, 0.95) 96%,
+        rgba(0, 0, 0, 0.45) 99%,
+        transparent 100%
+    );
+    mask: radial-gradient(
+        farthest-side,
+        transparent 0 84%,
+        rgba(0, 0, 0, 0.45) 91%,
+        rgba(0, 0, 0, 0.95) 96%,
+        rgba(0, 0, 0, 0.45) 99%,
+        transparent 100%
+    );
+    animation: shimmer-drift 30s linear infinite, halo-breathe 8s ease-in-out infinite;
 }
 @keyframes halo-breathe {
     0%,
@@ -240,9 +248,7 @@
         animation: none;
     }
     .halo-ring,
-    .halo-shimmer,
-    .halo-fade,
-    .holofoil-bloom,
+    .halo-iridescent,
     .glass-sheen {
         animation: none;
     }
