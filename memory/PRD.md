@@ -554,3 +554,14 @@ as a general background with scroll animations. Iterated direction (latest wins)
   is instantly unarchived with full history intact. TESTED via curl + browser: invoice
   create/send/client-visible/download flash all PASS; search+filters PASS; archive →
   hidden + badge → restore PASS; auto-return PASS; no overflow.
+
+- OWNER: ADMIN CONSOLE BUTTONS COMPACT ON MOBILE ONLY (2026-09-10) — "make the buttons
+  smaller to fit on mobile only, do not edit desktop". DONE: header view pills (Inbox/
+  Stats/Client records), Log out, the stats pills row (customers/messages/unread) and the
+  Invoices button all shrink on <640px (px-2.5/3 py-1.5 text-[9px] tracking-[0.08em]
+  whitespace-nowrap) and restore the EXACT original classes at sm:+ (desktop px-4/5
+  text-[10px] untouched); header container wraps gracefully on phones (h-auto flex-wrap,
+  sm:h-24 sm:flex-nowrap = identical desktop); stats pills row gained flex-wrap (was
+  overflowing 444px > 390px); music button ping ring clipped (overflow-hidden). TESTED:
+  390px — zero overflow (scrollW 390), every button visible uncut; 1440px — padding 16px/
+  font 10px/logout 20px unchanged, no overflow.

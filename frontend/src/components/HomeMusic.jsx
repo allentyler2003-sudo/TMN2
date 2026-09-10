@@ -110,7 +110,7 @@ export default function HomeMusic() {
             transition={{ delay: 0.9, type: "spring", stiffness: 260, damping: 18 }}
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.94 }}
-            className="fixed bottom-[176px] right-5 z-[80] flex h-14 w-14 items-center justify-center rounded-full border border-ink/25 bg-paper text-ink shadow-[0_12px_30px_rgba(10,10,10,0.2)] sm:right-7"
+            className="fixed bottom-[176px] right-5 z-[80] flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-ink/25 bg-paper text-ink shadow-[0_12px_30px_rgba(10,10,10,0.2)] sm:right-7"
         >
             {playing ? (
                 <>

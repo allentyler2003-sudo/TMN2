@@ -129,7 +129,7 @@ export default function Admin() {
             <HoloBackground />
             <div className="relative z-10">
             <header className="border-b border-ink/10 bg-paper/80 backdrop-blur-md">
-                <div className="mx-auto flex h-24 max-w-[1500px] items-center justify-between px-5 sm:px-8">
+                <div className="mx-auto flex h-auto max-w-[1500px] flex-wrap items-center justify-between gap-y-2 px-4 py-2 sm:h-24 sm:flex-nowrap sm:gap-y-0 sm:px-8 sm:py-0">
                     <a href="/" data-testid="admin-home-link" className="flex items-center gap-3">
                         <img src="/logo-dark.png" alt="TMN logo" className="h-14 w-14 object-contain" />
                         <span className="hidden font-display text-sm font-bold uppercase tracking-[0.18em] sm:block">
@@ -141,7 +141,7 @@ export default function Admin() {
                             <button
                                 data-testid="admin-view-inbox"
                                 onClick={() => setView("inbox")}
-                                className={`rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] transition-all duration-300 ${
+                                className={`whitespace-nowrap rounded-full px-2.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.08em] transition-all duration-300 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-[0.15em] ${
                                     view === "inbox"
                                         ? "bg-ink text-paper"
                                         : "border border-ink/25 text-ink/70 hover:border-ink hover:text-ink"
@@ -152,7 +152,7 @@ export default function Admin() {
                             <button
                                 data-testid="admin-view-stats"
                                 onClick={() => setView("stats")}
-                                className={`rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] transition-all duration-300 ${
+                                className={`whitespace-nowrap rounded-full px-2.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.08em] transition-all duration-300 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-[0.15em] ${
                                     view === "stats"
                                         ? "bg-ink text-paper"
                                         : "border border-ink/25 text-ink/70 hover:border-ink hover:text-ink"
@@ -163,7 +163,7 @@ export default function Admin() {
                             <button
                                 data-testid="admin-view-records"
                                 onClick={() => setView("records")}
-                                className={`rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] transition-all duration-300 ${
+                                className={`whitespace-nowrap rounded-full px-2.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.08em] transition-all duration-300 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-[0.15em] ${
                                     view === "records"
                                         ? "bg-ink text-paper"
                                         : "border border-ink/25 text-ink/70 hover:border-ink hover:text-ink"
@@ -175,7 +175,7 @@ export default function Admin() {
                         <button
                             data-testid="admin-logout-button"
                             onClick={logout}
-                            className="rounded-full border border-ink/25 px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] transition-colors hover:border-ink hover:bg-ink hover:text-paper"
+                            className="whitespace-nowrap rounded-full border border-ink/25 px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.1em] transition-colors hover:border-ink hover:bg-ink hover:text-paper sm:px-5 sm:py-2.5 sm:text-[10px] sm:tracking-[0.2em]"
                         >
                             Log out
                         </button>
@@ -211,21 +211,21 @@ export default function Admin() {
                                     Jobs, notes &amp; invoices
                                 </h1>
                             </div>
-                            <div className="flex gap-3 font-mono text-[10px] font-bold uppercase tracking-[0.2em]">
-                                <span className="rounded-full border border-ink/20 px-4 py-2" data-testid="stat-customers">
+                            <div className="flex flex-wrap gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] sm:gap-3">
+                                <span className="whitespace-nowrap rounded-full border border-ink/20 px-3 py-1.5 text-[9px] sm:px-4 sm:py-2 sm:text-[10px]" data-testid="stat-customers">
                                     {stats ? `${stats.customers} customers` : "—"}
                                 </span>
-                                <span className="rounded-full border border-ink/20 px-4 py-2" data-testid="stat-messages">
+                                <span className="whitespace-nowrap rounded-full border border-ink/20 px-3 py-1.5 text-[9px] sm:px-4 sm:py-2 sm:text-[10px]" data-testid="stat-messages">
                                     {stats ? `${stats.messages} messages` : "—"}
                                 </span>
-                                <span className="rounded-full bg-ink px-4 py-2 text-paper" data-testid="stat-unread">
+                                <span className="whitespace-nowrap rounded-full bg-ink px-3 py-1.5 text-[9px] text-paper sm:px-4 sm:py-2 sm:text-[10px]" data-testid="stat-unread">
                                     {stats ? `${stats.unread} unread` : "—"}
                                 </span>
                                 <button
                                     data-testid="admin-invoices-open"
                                     onClick={() => setView("invoices")}
                                     title="Generate invoices · view paid & unpaid"
-                                    className="inline-flex items-center gap-2 rounded-full border border-ink/30 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-ink transition-colors duration-300 hover:border-ink hover:bg-ink hover:text-paper"
+                                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-ink/30 px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.08em] text-ink transition-colors duration-300 hover:border-ink hover:bg-ink hover:text-paper sm:gap-2 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-[0.15em]"
                                 >
                                     <ReceiptText className="h-3.5 w-3.5" /> Invoices
                                 </button>
