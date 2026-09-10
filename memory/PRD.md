@@ -215,5 +215,12 @@ as a general background with scroll animations. Iterated direction (latest wins)
   dark corner AND speckles (230), excludes floor/door (0); recolour lands blue across the
   whole wall with original shading preserved, floor untouched.
 
+- MOBILE "NOTHING SHOWS" BUG FIXED (owner iPhone: upload card stuck invisible — whileInView
+  reveal never fired below the fold on their browser, leaving a blank gap where the tool
+  should be): FadeUp gained a `mount` prop (animate on page load, no scroll observer) —
+  both visualiser tool cards now use it and are ALWAYS visible immediately. Testing agent:
+  100% pass — mobile 390x844 cards visible with opacity 1 at load, upload→detect→swatch→
+  generate flow works on mobile AND desktop, no overflow, homepage teaser + hero unaffected.
+
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.

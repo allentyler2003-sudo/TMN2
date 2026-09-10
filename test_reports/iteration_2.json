@@ -1,0 +1,23 @@
+{
+  "summary": "Verified the FadeUp mount fix on /visualiser. On mobile (390x844) both tool cards are visible immediately with opacity=1, transform=none — the upload card (colour-upload-zone) sits at top=423 within the 844 viewport, no blank gap, no scrolling required. Full flow (upload -> detect walls -> Dark royal blue swatch -> Show me this look -> before/after) succeeded on mobile AND desktop (1440x900), producing a data: URI in colour-before-after within ~2s. No horizontal overflow on either viewport (scrollWidth == clientWidth). Homepage regression: colour-teaser visible, colour-open-visualiser href=/visualiser target=_blank, hero h1 'Prepared.Painted.Protected.' renders with opacity=1 — the Reveal.jsx change did not break the scroll-triggered variants elsewhere. Bug reported by the owner is fixed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Reveal.jsx FadeUp: `const MotionParent = inView ? motion.div : motion.div;` in MaskedLines is a no-op ternary — harmless but dead code, consider removing.",
+    "ColourStudio.jsx is ~1025 lines — recommend splitting BeforeAfter, ColourWheel and the SavedLooks gallery into their own files for maintainability (>700 line guideline).",
+    "Two 401 console errors on every page load (likely /api/auth/me for unauth users) — not blocking but noisy; consider suppressing with a silent probe."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "100%"},
+  "seed_data_creation": "Created /tmp/test_room.jpg (400x300 solid PIL image) for upload testing.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "FadeUp now supports a `mount` prop that switches from whileInView to animate-on-mount. Applied to the two /visualiser tool cards. Fix verified visually and programmatically on 390x844 and 1440x900.",
+  "rca of the issue": "framer-motion whileInView relies on the IntersectionObserver amount threshold; on the owner's iPhone Safari the below-fold cards never crossed the 15% threshold before the animation controller timed out / the browser skipped the callback, leaving initial={opacity:0, y:40} applied indefinitely. Mitigation: FadeUp's new `mount` prop uses plain `animate` so the cards transition on mount regardless of scroll position — verified opacity=1, transform=none right after load."
+}

@@ -2,13 +2,15 @@ import { motion } from "framer-motion";
 
 const EASE = [0.16, 1, 0.3, 1];
 
-export function FadeUp({ children, delay = 0, className = "", ...rest }) {
+export function FadeUp({ children, delay = 0, className = "", mount = false, ...rest }) {
+    const trigger = mount
+        ? { animate: { opacity: 1, y: 0 } }
+        : { whileInView: { opacity: 1, y: 0 }, viewport: { once: true, amount: 0.15 } };
     return (
         <motion.div
             className={className}
             initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.15 }}
+            {...trigger}
             transition={{ duration: 0.9, ease: EASE, delay }}
             {...rest}
         >

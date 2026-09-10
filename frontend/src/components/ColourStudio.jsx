@@ -526,7 +526,7 @@ export default function ColourStudio() {
 
                 <div className="grid gap-10 [&>*]:min-w-0 lg:grid-cols-[1fr_1.25fr] lg:gap-16">
                     {/* controls */}
-                    <FadeUp delay={0.1}>
+                    <FadeUp delay={0.1} mount>
                         <div className="rounded-3xl border border-ink/10 bg-white/85 p-7 shadow-[0_24px_70px_rgba(10,10,10,0.09)] sm:p-9">
                             {!image ? (
                                 <label
@@ -799,7 +799,7 @@ export default function ColourStudio() {
                     </FadeUp>
 
                     {/* result */}
-                    <FadeUp delay={0.2}>
+                    <FadeUp delay={0.2} mount>
                         <div className="rounded-3xl border border-ink/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(10,10,10,0.09)] sm:p-8">
                             {result ? (
                                 <div className="space-y-5">
