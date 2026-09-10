@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { Star } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { EASE } from "@/components/Reveal";
 import QuoteCta from "@/components/QuoteCta";
@@ -95,6 +96,15 @@ export default function Nav() {
                 </div>
 
                 <div className="flex items-center gap-2.5 sm:gap-4">
+                    <Link
+                        to="/reviews"
+                        data-testid="nav-reviews-button"
+                        title="Read our 5.0-star reviews"
+                        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-ink/25 bg-white/70 px-3.5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-ink backdrop-blur-sm transition-colors duration-300 hover:border-[#C6A55C] hover:bg-[#C6A55C]/15 sm:px-5"
+                    >
+                        <Star className="h-3.5 w-3.5 fill-[#C6A55C] text-[#C6A55C]" />
+                        <span className="hidden sm:inline">Reviews</span>
+                    </Link>
                     <a
                         href={accountHref}
                         data-testid={user ? "nav-account-link" : "nav-login-link"}

@@ -501,3 +501,10 @@ as a general background with scroll animations. Iterated direction (latest wins)
   browser: exactly one button per page (home/visualiser/favourites/reviews), music keeps
   playing across client-side navigation, stays off after pause+reload, resumes on first
   gesture after reload, no overflow.
+
+- OWNER: REVIEWS BUTTON IN THE HOMEPAGE HEADER (2026-09-10) — "add a button next to the
+  login button on the homepage that takes you to the full reviews page". DONE: gold-star
+  "★ REVIEWS" pill (nav-reviews-button) directly left of the Log in button in the site
+  header — full label on desktop, star icon only on mobile → /reviews. TESTED: button next
+  to login on the same row (desktop + mobile), navigates to the full reviews page, no
+  overflow.
