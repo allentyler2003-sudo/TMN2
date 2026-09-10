@@ -1,3 +1,4 @@
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Eye, Heart, Sparkles, Users } from "lucide-react";
 
 /* Admin stats: site views, customer account quantity and the colours
@@ -11,6 +12,8 @@ export default function StatsView({ stats, favourites }) {
         { label: "Customer accounts", value: stats ? stats.customers : null, icon: Users, testid: "stat-customers-total" },
         { label: "New accounts this week", value: stats ? stats.customers_new_7d : null, icon: Sparkles, testid: "stat-customers-new" },
     ];
+
+    const maxViews = stats && stats.daily_views ? Math.max(...stats.daily_views.map((d) => d.views)) : 0;
 
     return (
         <div className="space-y-12" data-testid="admin-stats-view">
@@ -38,6 +41,55 @@ export default function StatsView({ stats, favourites }) {
                             </p>
                         </div>
                     ))}
+                </div>
+
+                <div
+                    className="mt-6 rounded-3xl border border-ink/10 bg-white/85 p-6 shadow-[0_10px_30px_rgba(10,10,10,0.05)]"
+                    data-testid="stats-chart"
+                >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink/55">
+                            Site views — last 14 days
+                        </p>
+                        {maxViews === 0 && (
+                            <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-ink/40">
+                                Bars rise as the visits come in
+                            </p>
+                        )}
+                    </div>
+                    <div className="mt-4 h-56 w-full sm:h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={stats ? stats.daily_views : []} margin={{ top: 4, right: 4, bottom: 0, left: -18 }}>
+                                <CartesianGrid stroke="rgba(10,10,10,0.07)" vertical={false} />
+                                <XAxis
+                                    dataKey="day"
+                                    tickFormatter={(d) => d.slice(8, 10) + "/" + d.slice(5, 7)}
+                                    tick={{ fontSize: 10, fill: "rgba(10,10,10,0.45)", fontFamily: "monospace" }}
+                                    axisLine={{ stroke: "rgba(10,10,10,0.15)" }}
+                                    tickLine={false}
+                                    interval={1}
+                                />
+                                <YAxis
+                                    allowDecimals={false}
+                                    tick={{ fontSize: 10, fill: "rgba(10,10,10,0.45)", fontFamily: "monospace" }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                />
+                                <Tooltip
+                                    cursor={{ fill: "rgba(198,165,92,0.12)" }}
+                                    contentStyle={{
+                                        borderRadius: 14,
+                                        border: "1px solid rgba(10,10,10,0.12)",
+                                        fontFamily: "monospace",
+                                        fontSize: 11,
+                                    }}
+                                    formatter={(v) => [v + " views", null]}
+                                    labelFormatter={(d) => "Day " + d.slice(8, 10) + "/" + d.slice(5, 7)}
+                                />
+                                <Bar dataKey="views" fill="#C6A55C" radius={[6, 6, 0, 0]} maxBarSize={26} data-testid="stats-chart-bars" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
             </div>
 

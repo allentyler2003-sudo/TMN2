@@ -565,3 +565,12 @@ as a general background with scroll animations. Iterated direction (latest wins)
   overflowing 444px > 390px); music button ping ring clipped (overflow-hidden). TESTED:
   390px — zero overflow (scrollW 390), every button visible uncut; 1440px — padding 16px/
   font 10px/logout 20px unchanged, no overflow.
+
+- OWNER: STATS BAR CHART (2026-09-10) — "turn the daily view counts into a simple bar
+  chart in the admin console". DONE: /api/admin/stats now returns daily_views (last 14
+  days, [{day, views}]); StatsView.jsx gained a "SITE VIEWS — LAST 14 DAYS" card with a
+  recharts BarChart (gold #C6A55C bars, rounded tops, mono axis labels dd/mm, hover tooltip
+  with day + view count, zero-state hint "Bars rise as the visits come in"). Also deduped
+  PageTracker (StrictMode dev double-mounts were double-counting views; production builds
+  unaffected). TESTED: chart renders desktop + mobile over the holo, tooltip works, counts
+  increment +1 per page load after dedupe (418→420 across 2 navigations), no overflow.

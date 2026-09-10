@@ -671,7 +671,11 @@ async def admin_stats(admin: dict = Depends(require_admin)):
     visitors_7d = len({v for d in recent for v in d.get("visitors", [])})
     total_row = await db.site_views.aggregate([{"$group": {"_id": None, "views": {"$sum": "$views"}}}]).to_list(1)
     week_ago_iso = (now - timedelta(days=7)).isoformat()
+    days_14 = [(now - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(13, -1, -1)]
+    docs_14 = {d["day"]: d.get("views", 0) for d in await db.site_views.find({"day": {"$in": days_14}}).to_list(20)}
+    daily_views = [{"day": day, "views": docs_14.get(day, 0)} for day in days_14]
     return {
+        "daily_views": daily_views,
         "customers": await db.users.count_documents({"role": "customer"}),
         "customers_new_7d": await db.users.count_documents(
             {"role": "customer", "created_at": {"$gte": week_ago_iso}}

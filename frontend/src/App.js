@@ -48,9 +48,15 @@ class ErrorBoundary extends Component {
     }
 }
 
+let lastTracked = { path: null, at: 0 };
 function PageTracker() {
     const { pathname } = useLocation();
     useEffect(() => {
+        // dev StrictMode mounts effects twice — skip the instant re-fire so
+        // the preview counts read true (production builds don't double-fire)
+        const now = Date.now();
+        if (lastTracked.path === pathname && now - lastTracked.at < 3000) return;
+        lastTracked = { path: pathname, at: now };
         let vid = localStorage.getItem("tmn-vid");
         if (!vid) {
             vid = crypto.randomUUID
