@@ -589,3 +589,14 @@ as a general background with scroll animations. Iterated direction (latest wins)
   gone) alongside pin/archive. (3) Housekeeping: looktest + throwaway test accounts purged;
   Jane restored to active. TESTED: metric switching (titles + rings + bars) PASS on
   desktop, delete arm/confirm/remove PASS, no overflow.
+
+- OWNER: NO AUTO-SCROLL IN ADMIN + CHATS NEVER DELETED UNLESS FULL DELETE (2026-09-10) —
+  "don't auto scroll down when clicking things in the admin; never delete chats, only
+  archive; archive menu gets the fully delete option". DONE: (1) removed the admin
+  ChatTab's scrollIntoView effect — selecting a client opens their thread at the top, no
+  jumping. (2) the bin button no longer exists on ACTIVE client rows (pin + archive only —
+  chats can never be deleted from the list); the two-tap full delete (bin → red SURE? →
+  cascade including chats) now lives ONLY in the archive menu (Show archived → archived
+  rows show Restore + Delete). (3) archiving/removing test state left clean (Jane active).
+  TESTED in browser: no bin on active rows PASS, select-client no auto-scroll PASS
+  (scrollY 0), archive menu shows restore + full-delete PASS, restore PASS, no overflow.

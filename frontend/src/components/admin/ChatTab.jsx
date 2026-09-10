@@ -37,10 +37,6 @@ export default function ChatTab({ customer }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [customer?.id]);
 
-    useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages.length]);
-
     const send = async (e) => {
         e.preventDefault();
         const text = draft.trim();

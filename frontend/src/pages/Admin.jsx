@@ -344,23 +344,25 @@ export default function Admin() {
                                                 >
                                                     {c.archived ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5 text-ink/50" />}
                                                 </button>
-                                                <button
-                                                    data-testid={`admin-delete-${c.email}`}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (deleteArmedId === c.id) deleteCustomer(c);
-                                                        else setDeleteArmedId(c.id);
-                                                    }}
-                                                    onBlur={() => setDeleteArmedId((id) => (id === c.id ? null : id))}
-                                                    title={deleteArmedId === c.id ? "Tap again to permanently delete" : "Delete client permanently"}
-                                                    className={`rounded-full border p-1.5 font-mono text-[8px] font-bold transition-colors ${
-                                                        deleteArmedId === c.id
-                                                            ? "border-red-600 bg-red-600 px-2 text-paper"
-                                                            : "border-ink/20 hover:border-red-600"
-                                                    }`}
-                                                >
-                                                    {deleteArmedId === c.id ? "SURE?" : <Trash2 className="h-3.5 w-3.5 text-ink/50" />}
-                                                </button>
+                                                {c.archived && (
+                                                    <button
+                                                        data-testid={`admin-delete-${c.email}`}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (deleteArmedId === c.id) deleteCustomer(c);
+                                                            else setDeleteArmedId(c.id);
+                                                        }}
+                                                        onBlur={() => setDeleteArmedId((id) => (id === c.id ? null : id))}
+                                                        title={deleteArmedId === c.id ? "Tap again to fully delete — chats, jobs, invoices, everything" : "Fully delete — chats and all data go forever"}
+                                                        className={`rounded-full border p-1.5 font-mono text-[8px] font-bold transition-colors ${
+                                                            deleteArmedId === c.id
+                                                                ? "border-red-600 bg-red-600 px-2 text-paper"
+                                                                : "border-ink/20 hover:border-red-600"
+                                                        }`}
+                                                    >
+                                                        {deleteArmedId === c.id ? "SURE?" : <Trash2 className="h-3.5 w-3.5 text-ink/50" />}
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                         <p className="mt-0.5 text-xs font-medium text-ink/55">{c.email}</p>
