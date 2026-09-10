@@ -342,6 +342,68 @@ async def delete_look(look_id: str, user: dict = Depends(get_current_user)):
     return {"ok": True}
 
 
+# ---------- colour plate (saved custom colours) ----------
+
+class ColourInput(BaseModel):
+    name: str = Field(default="", max_length=40)
+    hex: str = Field(min_length=3, max_length=7)
+
+
+def colour_public(doc: dict) -> dict:
+    return {
+        "id": str(doc["_id"]),
+        "name": doc["name"],
+        "hex": doc["hex"],
+        "created_at": doc.get("created_at"),
+    }
+
+
+def normalise_hex_str(s: str) -> str:
+    h = s.strip().lstrip("#")
+    if len(h) == 3:
+        h = "".join(c + c for c in h)
+    if len(h) != 6 or any(c not in "0123456789abcdefABCDEF" for c in h):
+        raise HTTPException(status_code=400, detail="That doesn't look like a colour code")
+    return "#" + h.upper()
+
+
+@api_router.get("/colours")
+async def get_colours(user: dict = Depends(get_current_user)):
+    docs = await db.custom_colours.find({"user_id": str(user["_id"])}).sort("created_at", -1).to_list(60)
+    return [colour_public(d) for d in docs]
+
+
+@api_router.post("/colours")
+async def save_colour(input: ColourInput, user: dict = Depends(get_current_user)):
+    hexv = normalise_hex_str(input.hex)
+    count = await db.custom_colours.count_documents({"user_id": str(user["_id"])})
+    if count >= 40:
+        raise HTTPException(status_code=400, detail="Your colour plate is full (40 colours) — remove one first")
+    doc = {
+        "user_id": str(user["_id"]),
+        "name": (input.name.strip() or "Custom colour")[:40],
+        "hex": hexv,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = await db.custom_colours.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return colour_public(doc)
+
+
+@api_router.delete("/colours/{colour_id}")
+async def delete_colour(colour_id: str, user: dict = Depends(get_current_user)):
+    from bson import ObjectId
+
+    try:
+        oid = ObjectId(colour_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Colour not found")
+    result = await db.custom_colours.delete_one({"_id": oid, "user_id": str(user["_id"])})
+    if not result.deleted_count:
+        raise HTTPException(status_code=404, detail="Colour not found")
+    return {"ok": True}
+
+
 @api_router.post("/looks/{look_id}/send")
 async def send_look(look_id: str, user: dict = Depends(get_current_user)):
     from bson import ObjectId

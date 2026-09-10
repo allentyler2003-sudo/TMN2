@@ -363,3 +363,25 @@ as a general background with scroll animations. Iterated direction (latest wins)
   (credit-light, screenshots only): desktop + mobile upload → guide renders, Tap pill
   active by default, first-try tap painted the wall (overlay alpha 255; sky 0 / gravel 0),
   chip flips to READY, no sideways overflow on either viewport.
+
+- OWNER: COLOUR PLATE — CUSTOM COLOURS FROM AN UPLOADED PHOTO (2026-09-10) — "upload a
+  separate image or screenshot of a wall highlight, zoom in on colour, create a custom
+  colour sample, savable with an account; if not logged in popup: you can only save
+  custom upload colours to your colour plate — sign in or create account". DONE:
+  (1) Backend: /api/colours GET/POST/DELETE (auth via get_current_user, Mongo collection
+  custom_colours keyed by user_id, 40-colour cap, hex normaliser accepts #039-style
+  codes, 400 on bad hex, 401 logged out). (2) Frontend "Match a colour from a photo"
+  card in the picker: upload a close-up or screenshot → PIXEL-ZOOM LOUPE follows the
+  cursor (imageSmoothing off, hex readout) → tap samples that exact pixel (object-contain
+  letterbox mapping handled) → applies as "Photo match" to the walls; "Use average of
+  screenshot" for already-zoomed swatch screenshots; Remove. (3) MY COLOUR PLATE strip:
+  saved colours load from the account on login, tap a swatch to apply it, hover × to
+  delete, duplicate-save blocked, saved colours flow into the quote message. (4) Logged-
+  out save → shadcn Dialog popup (paper-styled — theme --background is near-black) with
+  the requested wording + Sign in / Create account buttons; Login.jsx now honours
+  /login?mode=register. FIXED DURING BUILD: missing rgbToHex import (webpack overlay
+  caught it) and onLoad-timing replaced by lazy pixel canvas from the visible <img>.
+  TESTED: curl CRUD + auth guards pass; browser E2E desktop+mobile — loupe PASS
+  (#9BAD87 on sage), corner tap PASS (#1F3A93 exact), average PASS, popup wording PASS,
+  register deep-link PASS, login→plate loads/swatch applies/save/persist-reload/delete
+  all PASS, no overflow either viewport.

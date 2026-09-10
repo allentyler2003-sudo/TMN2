@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { formatApiError, useAuth } from "@/context/AuthContext";
 import { EASE } from "@/components/Reveal";
 
 export default function Login() {
     const { login, register } = useAuth();
     const navigate = useNavigate();
-    const [mode, setMode] = useState("login");
+    const [params] = useSearchParams();
+    const [mode, setMode] = useState(params.get("mode") === "register" ? "register" : "login");
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");

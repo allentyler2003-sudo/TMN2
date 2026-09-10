@@ -4,13 +4,14 @@ import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
 import {
     ChevronsLeftRight, Download, Layers, Mail, Paintbrush, RefreshCw, Share2, Sparkles,
-    Upload, Wand2, Undo2, Eraser, Bookmark, Trash2, X, MousePointerClick,
+    Upload, Wand2, Undo2, Eraser, Bookmark, Trash2, X, MousePointerClick, Pipette,
 } from "lucide-react";
 import { waLink } from "@/constants/site";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FadeUp, EASE } from "@/components/Reveal";
 import {
     recolourLayers, drawColourWheel, hexToHsv, hsvToHex,
-    hexToRgb, rgbToLab, regionFromPoint, isValidHex, normaliseHex, makeThumb,
+    hexToRgb, rgbToHex, rgbToLab, regionFromPoint, isValidHex, normaliseHex, makeThumb,
 } from "@/lib/colour";
 
 const SWATCHES = [
@@ -239,12 +240,33 @@ export default function ColourStudio() {
     const [savedFlash, setSavedFlash] = useState("");
     const [accountBusy, setAccountBusy] = useState(false);
     const [accountState, setAccountState] = useState(null);
+    const [sampleImage, setSampleImage] = useState(null);
+    const [loupe, setLoupe] = useState(null);
+    const [plate, setPlate] = useState([]);
+    const [plateBusy, setPlateBusy] = useState(false);
+    const [plateFlash, setPlateFlash] = useState("");
+    const [showSignin, setShowSignin] = useState(false);
     const fileRef = useRef(null);
     const canvasRef = useRef(null);
     const imgRef = useRef(null);
     const drawing = useRef(false);
     const strokesRef = useRef({ walls: [] });
     const tapMaskRef = useRef({ walls: null });
+    const sampleFileRef = useRef(null);
+    const sampleImgRef = useRef(null);
+    const sampleCanvasRef = useRef(null);
+    const loupeRef = useRef(null);
+
+    const userEmail = user && typeof user === "object" ? user.email : null;
+    useEffect(() => {
+        if (!userEmail) {
+            setPlate([]);
+            return;
+        }
+        axios.get(`${API_BASE}/colours`, { withCredentials: true })
+            .then(({ data }) => setPlate(data))
+            .catch(() => {});
+    }, [userEmail]);
 
     const redraw = () => {
         const canvas = canvasRef.current;
@@ -358,10 +380,150 @@ export default function ColourStudio() {
         redraw();
     };
 
-    const applyCustomHex = (hex) => {
+    const applyCustomHex = (hex, name = "Custom") => {
         setCustomHex(hex);
         setHexInput(hex);
-        setLayerColours((c) => ({ ...c, [activeLayer]: { name: "Custom", hex } }));
+        setLayerColours((c) => ({ ...c, [activeLayer]: { name, hex } }));
+    };
+
+    /* ---------- colour sampler: match a colour from an uploaded photo ---------- */
+    const pickSampleFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+            setSampleImage(await fileToDataUrl(file));
+            setLoupe(null);
+        } catch {
+            setError("That image could not be read — try a different photo.");
+        }
+        e.target.value = "";
+    };
+
+    // pixel data comes lazily from the VISIBLE <img> (already loaded by the
+    // time anyone hovers it) — no load-event timing to worry about
+    const getSampleCtx = () => {
+        const img = sampleImgRef.current;
+        if (!img || !img.naturalWidth) return null;
+        if (!sampleCanvasRef.current) sampleCanvasRef.current = document.createElement("canvas");
+        const cv = sampleCanvasRef.current;
+        if (cv.width !== img.naturalWidth || cv.height !== img.naturalHeight) {
+            cv.width = img.naturalWidth;
+            cv.height = img.naturalHeight;
+            cv.getContext("2d").drawImage(img, 0, 0);
+        }
+        return cv.getContext("2d");
+    };
+
+    const hexAtEvent = (e) => {
+        const ctx = getSampleCtx();
+        if (!ctx) return null;
+        const cv = sampleCanvasRef.current;
+        const img = sampleImgRef.current;
+        const r = img.getBoundingClientRect();
+        // the photo renders object-contain — map the click through the letterbox
+        // to the actual image content before reading the pixel
+        const boxAspect = r.width / r.height;
+        const imgAspect = cv.width / cv.height;
+        let cw = r.width, ch = r.height;
+        if (imgAspect > boxAspect) ch = r.width / imgAspect;
+        else cw = r.height * imgAspect;
+        const offX = (r.width - cw) / 2;
+        const offY = (r.height - ch) / 2;
+        const nx = Math.min(Math.max((e.clientX - r.left - offX) / cw, 0), 1);
+        const ny = Math.min(Math.max((e.clientY - r.top - offY) / ch, 0), 1);
+        const px = Math.min(cv.width - 1, Math.max(0, Math.round(nx * (cv.width - 1))));
+        const py = Math.min(cv.height - 1, Math.max(0, Math.round(ny * (cv.height - 1))));
+        const [rr, gg, bb] = ctx.getImageData(px, py, 1, 1).data;
+        return { hex: rgbToHex(rr, gg, bb), px, py };
+    };
+
+    const onSampleMove = (e) => {
+        const hit = hexAtEvent(e);
+        if (!hit) return;
+        const wrap = sampleImgRef.current.parentElement.getBoundingClientRect();
+        setLoupe({ ...hit, x: e.clientX - wrap.left, y: e.clientY - wrap.top });
+    };
+
+
+    // pixel-zoom lens: drawn after render so the canvas ref exists
+    useEffect(() => {
+        if (!loupe || !loupeRef.current) return;
+        const ctx = getSampleCtx();
+        const lcv = loupeRef.current;
+        if (!ctx) return;
+        const cv = sampleCanvasRef.current;
+        const lctx = lcv.getContext("2d");
+        lctx.imageSmoothingEnabled = false;
+        lctx.fillStyle = "#ffffff";
+        lctx.fillRect(0, 0, lcv.width, lcv.height);
+        const srcR = Math.max(8, Math.round(cv.width / 48));
+        const sx = Math.min(Math.max(loupe.px - srcR / 2, 0), Math.max(0, cv.width - srcR));
+        const sy = Math.min(Math.max(loupe.py - srcR / 2, 0), Math.max(0, cv.height - srcR));
+        lctx.drawImage(cv, sx, sy, srcR, srcR, 0, 0, lcv.width, lcv.height);
+    }, [loupe]);
+
+    const onSampleApply = (e) => {
+        const hit = hexAtEvent(e);
+        if (!hit) return;
+        applyCustomHex(hit.hex, "Photo match");
+        setPlateFlash(`Matched ${hit.hex.toUpperCase()} — fine-tune with the wheel, then save it to your plate.`);
+        setTimeout(() => setPlateFlash(""), 3000);
+    };
+
+    const applySampleAverage = () => {
+        const ctx = getSampleCtx();
+        if (!ctx) return;
+        const cv = sampleCanvasRef.current;
+        const small = document.createElement("canvas");
+        small.width = 32;
+        small.height = 32;
+        const sctx = small.getContext("2d");
+        sctx.drawImage(cv, 0, 0, 32, 32);
+        const d = sctx.getImageData(0, 0, 32, 32).data;
+        let r = 0, g = 0, b = 0;
+        for (let i = 0; i < 32 * 32; i++) {
+            r += d[i * 4]; g += d[i * 4 + 1]; b += d[i * 4 + 2];
+        }
+        const hex = rgbToHex(Math.round(r / (32 * 32)), Math.round(g / (32 * 32)), Math.round(b / (32 * 32)));
+        applyCustomHex(hex, "Photo match");
+        setPlateFlash(`Matched ${hex.toUpperCase()} from the screenshot — save it to your plate.`);
+        setTimeout(() => setPlateFlash(""), 3000);
+    };
+
+    const saveToPlate = async () => {
+        if (!user) {
+            setShowSignin(true);
+            return;
+        }
+        if (plate.some((c) => c.hex === normaliseHex(customHex))) {
+            setPlateFlash("That colour is already on your plate ✓");
+            setTimeout(() => setPlateFlash(""), 3000);
+            return;
+        }
+        setPlateBusy(true);
+        try {
+            const { data } = await axios.post(
+                `${API_BASE}/colours`,
+                { name: layerColours[activeLayer].name, hex: customHex },
+                { withCredentials: true, timeout: 30000 }
+            );
+            setPlate((p) => [data, ...p]);
+            setPlateFlash("Saved to your colour plate ✓");
+        } catch (err) {
+            setPlateFlash(err.response?.data?.detail || "Couldn't save — please try again.");
+        } finally {
+            setPlateBusy(false);
+            setTimeout(() => setPlateFlash(""), 3000);
+        }
+    };
+
+    const removeFromPlate = async (id) => {
+        try {
+            await axios.delete(`${API_BASE}/colours/${id}`, { withCredentials: true });
+            setPlate((p) => p.filter((c) => c.id !== id));
+        } catch {
+            /* already gone */
+        }
     };
 
     const generate = () => {
@@ -727,10 +889,10 @@ export default function ColourStudio() {
                                                 );
                                             })}
                                         </div>
-                                        <p className="mt-2 text-sm font-bold uppercase tracking-wide text-ink/75">
+                                        <p className="mt-2 text-sm font-bold uppercase tracking-wide text-ink/75" data-testid="colour-active-name">
                                             {activeColour.name}
                                             {activeColour.code ? <span className="ml-2 font-mono text-[10px] font-medium text-ink/50">{activeColour.code}</span> : null}
-                                            <span className="ml-2 font-mono text-[10px] font-medium text-ink/50">{activeColour.hex.toUpperCase()}</span>
+                                            <span className="ml-2 font-mono text-[10px] font-medium text-ink/50" data-testid="colour-active-hex">{activeColour.hex.toUpperCase()}</span>
                                         </p>
                                         <p className="mt-1 text-[11px] font-medium text-ink/45">
                                             Brand colours are close digital matches — always order a
@@ -771,6 +933,136 @@ export default function ColourStudio() {
                                                 1F3A93 or 039.
                                             </p>
                                         )}
+                                    </div>
+
+                                    <div className="rounded-2xl border border-ink/10 bg-ink/[0.03] p-4" data-testid="colour-sampler">
+                                        <p className="mb-1 flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/55">
+                                            <Pipette className="h-3.5 w-3.5" /> Match a colour from a photo
+                                        </p>
+                                        <p className="mb-3 text-[11px] font-medium leading-relaxed text-ink/45">
+                                            Upload a close-up of the wall or a screenshot of a colour you
+                                            love — zoom in, tap the exact spot and we&#39;ll match it.
+                                        </p>
+                                        {!sampleImage ? (
+                                            <label
+                                                data-testid="colour-sample-upload"
+                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-ink/30 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-ink transition-colors hover:border-ink hover:bg-ink hover:text-paper"
+                                            >
+                                                <Upload className="h-3.5 w-3.5" /> Upload photo or screenshot
+                                                <input
+                                                    ref={sampleFileRef}
+                                                    data-testid="colour-sample-input"
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={pickSampleFile}
+                                                />
+                                            </label>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                <div className="relative select-none overflow-hidden rounded-xl ring-1 ring-ink/10" data-testid="colour-sample-stage">
+                                                    <img
+                                                        ref={sampleImgRef}
+                                                        src={sampleImage}
+                                                        alt="Colour reference"
+                                                        data-testid="colour-sample-img"
+                                                        className="block max-h-[280px] w-full cursor-crosshair object-contain"
+                                                        draggable={false}
+                                                        onPointerMove={onSampleMove}
+                                                        onPointerLeave={() => setLoupe(null)}
+                                                        onPointerDown={onSampleApply}
+                                                    />
+                                                    {loupe && (
+                                                        <div
+                                                            className="pointer-events-none absolute z-10 flex flex-col items-center"
+                                                            style={{ left: loupe.x, top: loupe.y, transform: "translate(-50%, -115%)" }}
+                                                            data-testid="colour-sample-loupe"
+                                                        >
+                                                            <canvas
+                                                                ref={loupeRef}
+                                                                width={84}
+                                                                height={84}
+                                                                className="rounded-full shadow-[0_10px_30px_rgba(10,10,10,0.25)] ring-2 ring-white"
+                                                            />
+                                                            <span className="mt-1 rounded-full bg-ink px-2 py-0.5 font-mono text-[9px] font-bold tracking-[0.1em] text-paper">
+                                                                {loupe.hex.toUpperCase()}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                                    <button
+                                                        data-testid="colour-sample-average"
+                                                        onClick={applySampleAverage}
+                                                        className="inline-flex items-center gap-1.5 rounded-full border border-ink/30 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-ink transition-colors hover:border-ink hover:bg-ink hover:text-paper"
+                                                    >
+                                                        Use average of screenshot
+                                                    </button>
+                                                    <button
+                                                        data-testid="colour-sample-remove"
+                                                        onClick={() => { setSampleImage(null); setLoupe(null); }}
+                                                        className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink/60 hover:text-ink"
+                                                    >
+                                                        <Trash2 className="h-3 w-3" /> Remove
+                                                    </button>
+                                                    <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink/40">
+                                                        Tap the photo to sample that exact pixel
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="mt-4 border-t border-ink/10 pt-3">
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/55">
+                                                    My colour plate
+                                                </p>
+                                                <button
+                                                    data-testid="colour-plate-save"
+                                                    onClick={saveToPlate}
+                                                    disabled={plateBusy}
+                                                    className="rounded-full bg-ink px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
+                                                >
+                                                    {plateBusy ? "Saving…" : user ? "Save this colour" : "Save to my plate"}
+                                                </button>
+                                            </div>
+                                            {plate.length > 0 ? (
+                                                <div className="mt-3 flex flex-wrap gap-3">
+                                                    {plate.map((c, i) => (
+                                                        <div key={c.id} className="group relative">
+                                                            <button
+                                                                data-testid={`colour-plate-swatch-${i}`}
+                                                                onClick={() => applyCustomHex(c.hex, c.name)}
+                                                                title={`${c.name} ${c.hex}`}
+                                                                className="h-9 w-9 rounded-full shadow-md ring-2 ring-white transition-transform hover:scale-110"
+                                                                style={{ backgroundColor: c.hex }}
+                                                            >
+                                                                <span className="sr-only">{c.name}</span>
+                                                            </button>
+                                                            <button
+                                                                data-testid={`colour-plate-delete-${i}`}
+                                                                onClick={() => removeFromPlate(c.id)}
+                                                                title={`Remove ${c.name}`}
+                                                                className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-ink font-mono text-[8px] font-bold text-paper opacity-0 transition-opacity group-hover:opacity-100"
+                                                            >
+                                                                <X className="h-2.5 w-2.5" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="mt-2 text-[11px] font-medium text-ink/45">
+                                                    {user
+                                                        ? "Colours you save appear here on every visit."
+                                                        : "Sign in to keep your custom colours on your plate."}
+                                                </p>
+                                            )}
+                                            {plateFlash && (
+                                                <p className="mt-2 text-xs font-medium text-ink/70" data-testid="colour-plate-flash">
+                                                    {plateFlash}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div>
@@ -1052,6 +1344,37 @@ export default function ColourStudio() {
                     </div>
                 )}
             </div>
+            <Dialog open={showSignin} onOpenChange={setShowSignin}>
+                <DialogContent className="rounded-2xl border-ink/10 bg-paper text-ink sm:max-w-md" data-testid="colour-signin-popup">
+                    <DialogHeader>
+                        <DialogTitle className="font-display text-xl font-bold uppercase tracking-tight text-ink">
+                            Save it to your colour plate
+                        </DialogTitle>
+                        <DialogDescription className="text-sm font-medium leading-relaxed text-ink/60">
+                            You can only save custom upload colours to your colour plate. Sign in or
+                            create an account to keep them — they&#39;ll be here every time you visit.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="flex-row gap-2 sm:justify-start">
+                        <Link
+                            to="/login"
+                            data-testid="colour-signin-link"
+                            onClick={() => setShowSignin(false)}
+                            className="inline-flex items-center justify-center rounded-full bg-ink px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-paper transition-opacity hover:opacity-90"
+                        >
+                            Sign in
+                        </Link>
+                        <Link
+                            to="/login?mode=register"
+                            data-testid="colour-signup-link"
+                            onClick={() => setShowSignin(false)}
+                            className="inline-flex items-center justify-center rounded-full border border-ink/30 px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-ink transition-colors hover:border-ink hover:bg-ink hover:text-paper"
+                        >
+                            Create account
+                        </Link>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </section>
     );
 }
