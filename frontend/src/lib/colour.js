@@ -175,13 +175,34 @@ const MASK_COLS = {
     woodwork: [29, 78, 216], // blue overlay
 };
 
+/* Crisp mask edges: the smoothed upscale leaves soft half-covered boundary
+   pixels that bleed over trims, windows and doors — re-binarize the alpha so
+   the edge lands on single full pixels. */
+function sharpenMask(mctx, mask, cols) {
+    const up = mctx.getImageData(0, 0, mask.width, mask.height);
+    for (let i = 0; i < mask.width * mask.height; i++) {
+        if (up.data[i * 4 + 3] > 120) {
+            up.data[i * 4] = cols[0];
+            up.data[i * 4 + 1] = cols[1];
+            up.data[i * 4 + 2] = cols[2];
+            up.data[i * 4 + 3] = 255;
+        } else {
+            up.data[i * 4] = 0;
+            up.data[i * 4 + 1] = 0;
+            up.data[i * 4 + 2] = 0;
+            up.data[i * 4 + 3] = 0;
+        }
+    }
+    mctx.putImageData(up, 0, 0);
+}
+
 /* Auto surface detection. kind 'walls': flood fill from upper-middle seeds.
    kind 'woodwork': finds smooth strips & panels — skirting boards, doors,
    frames (elongated or small components in the lower 3/4). Best-effort;
    the brush is always there to fix. Returns a mask canvas or null. */
 export function detectWallMask(img, kind = "walls") {
-    const W = 160;
-    const H = Math.max(1, Math.round((160 * img.naturalHeight) / img.naturalWidth));
+    const W = 256;
+    const H = Math.max(1, Math.round((256 * img.naturalHeight) / img.naturalWidth));
     const small = document.createElement("canvas");
     small.width = W;
     small.height = H;
@@ -196,8 +217,26 @@ export function detectWallMask(img, kind = "walls") {
     const mctx = mask.getContext("2d");
 
     if (kind === "woodwork") {
+        // 3x3-smoothed luminance: raw photo grain otherwise randomly bridges or
+        // breaks the thin boundaries this detector depends on
+        const lum = new Float32Array(W * H);
+        for (let i = 0; i < W * H; i++) lum[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
         const gray = new Float32Array(W * H);
-        for (let i = 0; i < W * H; i++) gray[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+        for (let y = 0; y < H; y++) {
+            for (let x = 0; x < W; x++) {
+                let sum = 0;
+                let n = 0;
+                for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (nx >= 0 && nx < W && ny >= 0 && ny < H) {
+                        sum += lum[ny * W + nx];
+                        n++;
+                    }
+                }
+                gray[y * W + x] = sum / n;
+            }
+        }
         const lowEdge = new Uint8Array(W * H);
         for (let y = 0; y < H; y++) {
             for (let x = 0; x < W; x++) {
@@ -209,7 +248,7 @@ export function detectWallMask(img, kind = "walls") {
         }
         const seen = new Uint8Array(W * H);
         const picks = [];
-        for (let i = 0; i < W * H && picks.length < 3; i++) {
+        for (let i = 0; i < W * H && picks.length < 6; i++) {
             if (!lowEdge[i] || seen[i]) continue;
             const q = [i];
             seen[i] = 1;
@@ -239,9 +278,13 @@ export function detectWallMask(img, kind = "walls") {
             const cw = maxX - minX + 1;
             const ch = maxY - minY + 1;
             const area = px.length / (W * H);
-            const horizontal = cw / ch > 3 && minY > H * 0.45;
-            const vertical = ch / cw > 1.8 && cw < W * 0.3;
-            if (area > 0.003 && area < 0.12 && (horizontal || vertical)) picks.push(px);
+            const horizontal = cw / ch > 3 && minY > H * 0.4;
+            const vertical = ch / cw > 1.8 && cw < W * 0.35;
+            // rectangular rings — window frames: a frame perimeter bounding a
+            // hole (or a dark pane) has a boxy bounding box it only partly fills
+            const fill = px.length / (cw * ch);
+            const boxy = ch > H * 0.08 && cw > W * 0.1 && fill < 0.8 && cw / ch > 0.5 && ch / cw > 0.5;
+            if (area > 0.003 && area < 0.2 && (horizontal || vertical || boxy)) picks.push(px);
         }
         if (picks.length) {
             const msmall = document.createElement("canvas");
@@ -261,6 +304,7 @@ export function detectWallMask(img, kind = "walls") {
             msctx.putImageData(id, 0, 0);
             mctx.imageSmoothingEnabled = true;
             mctx.drawImage(msmall, 0, 0, mask.width, mask.height);
+            sharpenMask(mctx, mask, MASK_COLS.woodwork);
             return mask;
         }
         return null; // nothing woodwork-like found — caller falls back to brushing
@@ -325,8 +369,8 @@ export function detectWallMask(img, kind = "walls") {
     }
 
     const seen = new Uint8Array(W * H);
-    let best = null;
-    const minArea = 0.1 * W * H;
+    const parts = [];
+    const partMin = 0.045 * W * H;
     for (let i = 0; i < W * H; i++) if (sky[i]) seen[i] = 1;
     for (const [seed] of seeds) {
         if (seen[seed]) continue;
@@ -366,9 +410,15 @@ export function detectWallMask(img, kind = "walls") {
         }
         for (const p of comp) seen[p] = 1;
         if (overflow) continue;
-        if (comp.length < minArea) continue;
-        if (!best || comp.length > best.length) best = comp;
+        if (comp.length < partMin) continue;
+        parts.push(comp);
     }
+
+    // a house can show SEVERAL wall faces (front wall + return wall split by a
+    // downpipe or corner) — union every qualifying region, not just the largest
+    let best = parts.length ? [...parts[0]] : null;
+    for (let k = 1; k < parts.length; k++) best.push(...parts[k]);
+    const minArea = 0.08 * W * H;
 
     if (best) {
         // the bottom quarter of a photo is ground/flooring — never the walls
@@ -381,7 +431,7 @@ export function detectWallMask(img, kind = "walls") {
         // and drops out if it's an isolated dot inside the region
         const inMask = new Uint8Array(W * H);
         for (const p of best) inMask[p] = 1;
-        for (let pass = 0; pass < 3; pass++) {
+        for (let pass = 0; pass < 4; pass++) {
             const changes = [];
             for (let y = 0; y < H; y++) {
                 for (let x = 0; x < W; x++) {
@@ -395,7 +445,7 @@ export function detectWallMask(img, kind = "walls") {
                             if (inMask[ny * W + nx]) neighbours++;
                         }
                     }
-                    if (total && (inMask[i] ? neighbours < 3 : neighbours > total * 0.72)) {
+                    if (total && (inMask[i] ? neighbours < 3 : neighbours > total * 0.62)) {
                         changes.push([i, !inMask[i]]);
                     }
                 }
@@ -423,6 +473,7 @@ export function detectWallMask(img, kind = "walls") {
         msctx.putImageData(id, 0, 0);
         mctx.imageSmoothingEnabled = true;
         mctx.drawImage(msmall, 0, 0, mask.width, mask.height);
+        sharpenMask(mctx, mask, MASK_COLS.walls);
         return mask;
     }
     // honest failure: no blanket fill — the caller tells the visitor to brush

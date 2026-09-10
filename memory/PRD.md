@@ -281,3 +281,22 @@ as a general background with scroll animations. Iterated direction (latest wins)
   swatches — 3 curated trim colours per wall-colour family (7 rules covering all brand
   palettes, Lab-nearest fallback for custom hexes); tap applies to the woodwork layer.
   Testing agent: all 7 trios exact, tap updates woodwork dot, no mobile overflow.
+
+- DETECT REFINEMENTS FROM THE OWNER'S REAL HOUSE PHOTO (owner: colour is perfect, but
+  edges could be sharper next to trims/windows/doors; auto-detect missed one white
+  wall; trim detect missed one window) — FOUR detectWallMask upgrades in colour.js:
+  (1) SHARPER EDGES: analysis resolution 160→256 + the upscaled mask is re-binarized
+  (sharpenMask) — no soft half-covered boundary pixels bleed over trims/windows/doors;
+  (2) MISSED SECOND WALL: walls detector now unions ALL qualifying regions ≥4.5% of the
+  image (was: only the single largest — a return wall split by a downpipe was dropped);
+  (3) WINDOW FRAMES in trim mode: new boxy-ring rule (frame perimeter bounding a pane;
+  fixed a unit bug where the fill ratio compared an area fraction to bbox pixels —
+  always ≈0, which had made window GLASS get picked), picks cap 3→6, size caps relaxed,
+  luminance edge map 3×3-smoothed so grain can't bridge boundaries (low-contrast
+  skirting stays best-effort — brush to add); (4) STRONGER HOLE-FILL: 4 rounds, 0.62
+  join threshold (kills white speckle holes around windows). VERIFIED: Node harness
+  /app/scripts/test_wall_detect.mjs 6/6 scenarios ×3 runs (new E: two wall faces split
+  by a downpipe → both 100% masked, pipe 0%; new F: woodwork rings+door, glass clean);
+  testing agent iteration_5 on a real DOM: both wall faces painted (0.0% on sky/ground/
+  door/pipe/glass), door 89.5% + both window rings ~30% strips with glass 0.0%, mobile
+  0px overflow, homepage + chat FAB fine.
