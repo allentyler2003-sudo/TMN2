@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { waLink } from "@/constants/site";
 import { EASE } from "@/components/Reveal";
@@ -8,6 +9,7 @@ const LINKS = [
     { label: "Services", hash: "#services", testid: "nav-link-services" },
     { label: "Work", hash: "#work", testid: "nav-link-work" },
     { label: "Colours", hash: "#colours", testid: "nav-link-colours" },
+    { label: "Favourites", to: "/favourites", testid: "nav-link-favourites" },
     { label: "About", hash: "#about", testid: "nav-link-about" },
     { label: "Contact", hash: "#contact", testid: "nav-link-contact" },
 ];
@@ -68,17 +70,28 @@ export default function Nav() {
                 </a>
 
                 <div className="hidden items-center gap-8 lg:flex">
-                    {LINKS.map((l) => (
-                        <a
-                            key={l.hash}
-                            href={l.hash}
-                            data-testid={l.testid}
-                            onClick={(e) => go(e, l.hash)}
-                            className="link-sweep font-mono text-[11px] font-medium uppercase tracking-[0.25em] text-ink/85 transition-colors hover:text-ink"
-                        >
-                            {l.label}
-                        </a>
-                    ))}
+                    {LINKS.map((l) =>
+                        l.to ? (
+                            <Link
+                                key={l.to}
+                                to={l.to}
+                                data-testid={l.testid}
+                                className="link-sweep font-mono text-[11px] font-medium uppercase tracking-[0.25em] text-ink/85 transition-colors hover:text-ink"
+                            >
+                                {l.label}
+                            </Link>
+                        ) : (
+                            <a
+                                key={l.hash}
+                                href={l.hash}
+                                data-testid={l.testid}
+                                onClick={(e) => go(e, l.hash)}
+                                className="link-sweep font-mono text-[11px] font-medium uppercase tracking-[0.25em] text-ink/85 transition-colors hover:text-ink"
+                            >
+                                {l.label}
+                            </a>
+                        )
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2.5 sm:gap-4">

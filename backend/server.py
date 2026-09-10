@@ -464,6 +464,42 @@ async def delete_favourite(favourite_id: str, user: dict = Depends(get_current_u
     return {"ok": True}
 
 
+FAVOURITE_PRESETS = [
+    ("Sage green", "#9CAF88"),
+    ("Dark royal blue", "#1F3A93"),
+    ("Deep navy", "#1B2A4A"),
+    ("Charcoal", "#36454F"),
+    ("Soft blush", "#E8C4C4"),
+    ("Warm ivory", "#F5F0E1"),
+    ("Slate grey", "#708090"),
+    ("Heritage white", "#F0EBE0"),
+    ("Anthracite", "#3D3D3D"),
+    ("Forest green", "#2C4A3B"),
+]
+
+
+@api_router.get("/favourites/top")
+async def top_favourites():
+    """Public ranked top-10: most-favourited colours first, presets fill the
+    rest. Deliberately NO counts and no client details — just the ranking."""
+    docs = await db.favourite_colours.find({}).to_list(2000)
+    agg = {}
+    for d in docs:
+        entry = agg.setdefault(d["hex"], {"hex": d["hex"], "names": {}, "count": 0, "last": ""})
+        entry["count"] += 1
+        entry["names"][d["name"]] = entry["names"].get(d["name"], 0) + 1
+        entry["last"] = max(entry["last"], d.get("created_at", ""))
+    ranked = sorted(agg.values(), key=lambda e: e.get("last", ""))
+    ranked = sorted(ranked, key=lambda e: -e["count"])[:10]
+    out = [{"name": max(e["names"], key=lambda n: e["names"][n]), "hex": e["hex"]} for e in ranked]
+    for pname, phex in FAVOURITE_PRESETS:
+        if len(out) >= 10:
+            break
+        if not any(o["hex"].upper() == phex.upper() for o in out):
+            out.append({"name": pname, "hex": phex})
+    return out[:10]
+
+
 @api_router.get("/admin/favourites")
 async def admin_favourites(admin: dict = Depends(require_admin)):
     docs = await db.favourite_colours.find({}).sort("created_at", -1).to_list(2000)

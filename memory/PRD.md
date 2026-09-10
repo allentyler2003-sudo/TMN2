@@ -416,3 +416,17 @@ as a general background with scroll animations. Iterated direction (latest wins)
   workspace card bg-white/70→85 for readability over the animation). Same video + CSS
   fallback as home/visualiser. TESTED: browser desktop+mobile — holo video present behind
   inbox + Stats views, cards readable, no overflow.
+
+- OWNER: PUBLIC "CLIENTS' FAVOURITE COLOURS" TAB (2026-09-10) — "create a tab on the
+  homepage header for clients' favourite colours, ranked list 1-10, no numbers of people
+  shown, preset 10 colours that change as people favourite them, holo background on this
+  part". DONE: (1) Backend GET /api/favourites/top (PUBLIC — no auth, no counts, no client
+  details): aggregates favourite_colours by hex, ranks by count then recency, fills to 10
+  with FAVOURITE_PRESETS (curated TMN ten). (2) New page /favourites (Favourites.jsx):
+  HoloBackground + visualiser-style header, "CLIENTS' FAVOURITE COLOURS." hero, ranked
+  01-10 rows (big rank numeral, colour disc, name + hex), gold "MOST LOVED" badge on #1,
+  CTA to the visualiser, staggered FadeUp reveals, skeleton while loading.
+  (3) Homepage header nav: new FAVOURITES tab (Link route among the hash links).
+  TESTED: curl ranking — real favourites climb above presets (Sage green #1 after client
+  hearts, Anthracite entered #2 on a new favourite), exactly 10 rows, zero counts/emails
+  exposed; browser desktop+mobile — 10 rows render, nav tab navigates, no overflow.
