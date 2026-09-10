@@ -488,3 +488,16 @@ as a general background with scroll animations. Iterated direction (latest wins)
   now Hero → Marquee → ColourTeaser → Services ("The trade, done properly.") → REVIEWS →
   Work → About → Contact. TESTED: DOM offsets confirm services < reviews < work; renders
   clean on desktop + mobile, no overflow.
+
+- OWNER: MUSIC DOUBLING FIXED + CONTINUOUS ACROSS THE SITE (2026-09-10) — "music doubling
+  over when switching tabs; make it one continuous track anywhere you go on the site".
+  ROOT CAUSE: HomeMusic was mounted inside the home page only — every navigation destroyed
+  it and hot reloads could orphan extra audio elements. FIX: (1) module-level SINGLETON
+  Audio (one element per browser session, physically impossible to double — every mount
+  shares it); (2) mounted ONCE at router level in App.js so it plays continuously on every
+  page (button now shows on all pages); (3) no pause-on-unmount; (4) user's pause intent
+  persisted to localStorage (tmn-music-muted) so it stays off after reloads; (5) autoplay
+  policy handled: after a hard reload it resumes on the first scroll/tap. TESTED in
+  browser: exactly one button per page (home/visualiser/favourites/reviews), music keeps
+  playing across client-side navigation, stays off after pause+reload, resumes on first
+  gesture after reload, no overflow.

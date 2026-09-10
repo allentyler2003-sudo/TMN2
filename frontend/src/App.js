@@ -113,7 +113,6 @@ function Site() {
                 <Footer />
                 <FloatingWhatsApp />
                 <AiChat />
-                <HomeMusic />
             </div>
         </>
     );
@@ -143,6 +142,7 @@ function App() {
                 <BrowserRouter>
                     <ScrollToTop />
                     <PageTracker />
+                    <HomeMusic />
                     <Routes>
                         <Route path="/" element={<Site />} />
                         <Route path="/visualiser" element={<Visualiser />} />
