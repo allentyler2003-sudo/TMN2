@@ -483,3 +483,8 @@ as a general background with scroll animations. Iterated direction (latest wins)
   attributed via platform), bottom CTAs to the visualiser + quote popup. Route added in
   App.js. TESTED: button present + navigates to /reviews; 12 cards render; holo stays
   fixed while scrolling the whole feed; desktop + mobile, no overflow.
+
+- OWNER: REVIEWS MOVED UNDER "THE TRADE, DONE PROPERLY" (2026-09-10) — homepage order is
+  now Hero → Marquee → ColourTeaser → Services ("The trade, done properly.") → REVIEWS →
+  Work → About → Contact. TESTED: DOM offsets confirm services < reviews < work; renders
+  clean on desktop + mobile, no overflow.

@@ -105,8 +105,8 @@ function Site() {
                     <Marquee />
                     <ColourTeaser />
                     <Services />
-                    <Work />
                     <Reviews />
+                    <Work />
                     <About />
                     <Contact />
                 </main>
