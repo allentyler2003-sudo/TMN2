@@ -759,7 +759,10 @@ def note_public(doc: dict) -> dict:
 def invoice_public(doc: dict) -> dict:
     return {
         "id": str(doc["_id"]),
-        "customer_id": doc["customer_id"],
+        "customer_id": doc.get("customer_id"),
+        "client_name": doc.get("client_name", ""),
+        "client_email": doc.get("client_email", ""),
+        "client_address": doc.get("client_address", ""),
         "number": doc["number"],
         "items": doc.get("items", []),
         "total": doc.get("total", 0),
@@ -795,7 +798,10 @@ class InvoiceItemInput(BaseModel):
 
 
 class InvoiceInput(BaseModel):
-    customer_id: str
+    customer_id: str = ""  # empty = custom invoice for a client off the website
+    client_name: str = Field(default="", max_length=80)
+    client_email: str = Field(default="", max_length=120)
+    client_address: str = Field(default="", max_length=240)
     items: List[InvoiceItemInput] = Field(min_length=1)
     due_date: str = Field(min_length=10, max_length=10)
     status: str = "draft"
@@ -892,14 +898,28 @@ async def admin_list_invoices(customer_id: Optional[str] = None, admin: dict = D
 async def admin_create_invoice(input: InvoiceInput, admin: dict = Depends(require_admin)):
     if input.status not in INVOICE_STATUSES:
         raise HTTPException(status_code=400, detail="Invalid invoice status")
-    target = await db.users.find_one({"_id": __import__("bson").ObjectId(input.customer_id)})
-    if not target:
-        raise HTTPException(status_code=404, detail="Customer not found")
+    target = None
+    if input.customer_id:
+        target = await db.users.find_one({"_id": __import__("bson").ObjectId(input.customer_id)})
+        if not target:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        client_name = (target.get("name") or "Client")[:80]
+        client_email = (target.get("email") or "")[:120]
+        client_address = ""
+    else:
+        if not input.client_name.strip():
+            raise HTTPException(status_code=400, detail="Pick a client or enter a name for an off-site client")
+        client_name = input.client_name.strip()[:80]
+        client_email = input.client_email.strip()[:120]
+        client_address = input.client_address.strip()[:240]
     items = [{"description": i.description.strip(), "amount": round(i.amount, 2)} for i in input.items]
     total = round(sum(i["amount"] for i in items), 2)
     count = await db.invoices.count_documents({})
     doc = {
-        "customer_id": input.customer_id,
+        "customer_id": input.customer_id or None,
+        "client_name": client_name,
+        "client_email": client_email,
+        "client_address": client_address,
         "number": f"TMN-{count + 1:04d}",
         "items": items,
         "total": total,
@@ -927,6 +947,8 @@ async def admin_send_invoice(invoice_id: str, admin: dict = Depends(require_admi
     )
     if not inv:
         raise HTTPException(status_code=404, detail="Invoice not found")
+    if not inv.get("customer_id"):
+        raise HTTPException(status_code=400, detail="This invoice is for an off-site client — download it and email it instead")
     total = inv.get("total", 0)
     text = (
         f"Invoice {inv.get('number', '')} for £{total:,.2f} has been sent to you — "

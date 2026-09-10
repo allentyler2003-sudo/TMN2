@@ -610,3 +610,22 @@ as a general background with scroll animations. Iterated direction (latest wins)
   import. TESTED: pill order (unread → invoices → archived → search, same row) PASS,
   search finds Jane + close restores the list PASS, archived reveal/hide PASS, Jane left
   active, no overflow on desktop or mobile.
+
+- OWNER: OFF-SITE CUSTOM INVOICES + PROFESSIONAL A4 PDF (2026-09-10) — "allow custom
+  invoices for clients outside the website and create an A4 fully detailed professional
+  invoice with the logo on generating". DONE: (1) InvoiceInput customer_id now optional +
+  client_name/client_email/client_address fields; create endpoint branches (registered →
+  denormalise name/email from the account; off-site → require client_name); invoice_public
+  carries the details; send-to-client rejected 400 for off-site (download + email instead).
+  (2) InvoicesView form: Registered / Off-site client toggle pills; off-site shows name*
+  + email + address fields; rows show an OFF-SITE badge and hide the Send button for
+  off-site; clientFor prefers stored details. (3) invoicePdf.js rewritten: professional A4
+  — dark letterhead with logo + gold brand rule, INVOICE + number, issue/due dates, PAID/
+  DUE/DRAFT chip, billed-to block (name/email/address), striped items table with wrapped
+  descriptions, Total due rule, payment note, footer with contact details, multi-page safe.
+  (4) INFRA NOTE: the pod's Mongo restarted + wiped data mid-session (ephemeral volume);
+  admin auto-reseeded, customer@test.co.uk recreated (same password) — see
+  test_credentials.md. TESTED: curl — off-site create (TMN-0001, customer_id None) PASS,
+  send → 400 PASS, registered create carries details PASS; browser — form toggle + fields
+  PASS, OFF-SITE badge + no-send PASS, PDF download TMN-0002.pdf PASS (flash + download
+  event), no overflow.

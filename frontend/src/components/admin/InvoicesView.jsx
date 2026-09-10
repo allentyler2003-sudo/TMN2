@@ -14,6 +14,8 @@ export default function InvoicesView({ customers }) {
     const [filter, setFilter] = useState("all");
     const [showForm, setShowForm] = useState(false);
     const [clientId, setClientId] = useState("");
+    const [clientType, setClientType] = useState("registered");
+    const [offsite, setOffsite] = useState({ name: "", email: "", address: "" });
     const [items, setItems] = useState([{ description: "", amount: "" }]);
     const [dueDate, setDueDate] = useState("");
     const [status, setStatus] = useState("draft");
@@ -36,11 +38,13 @@ export default function InvoicesView({ customers }) {
         load();
     }, []);
 
-    const clientFor = (inv) =>
-        customers.find((c) => c.id === inv.customer_id) || {
-            name: "Unknown client",
-            email: "",
-        };
+    const clientFor = (inv) => {
+        if (inv.client_name) {
+            return { name: inv.client_name, email: inv.client_email || "", address: inv.client_address || "" };
+        }
+        const c = customers.find((x) => x.id === inv.customer_id);
+        return c ? { ...c, address: "" } : { name: "Unknown client", email: "", address: "" };
+    };
 
     const flash_ = (msg) => {
         setFlash(msg);
@@ -49,8 +53,12 @@ export default function InvoicesView({ customers }) {
 
     const create = async (e) => {
         e.preventDefault();
-        if (!clientId) {
+        if (clientType === "registered" && !clientId) {
             setError("Pick a client for the invoice.");
+            return;
+        }
+        if (clientType === "offsite" && !offsite.name.trim()) {
+            setError("Enter the client's name for an off-site invoice.");
             return;
         }
         setBusy(true);
@@ -59,7 +67,10 @@ export default function InvoicesView({ customers }) {
             await axios.post(
                 `${API_BASE}/admin/invoices`,
                 {
-                    customer_id: clientId,
+                    customer_id: clientType === "registered" ? clientId : "",
+                    client_name: clientType === "offsite" ? offsite.name : "",
+                    client_email: clientType === "offsite" ? offsite.email : "",
+                    client_address: clientType === "offsite" ? offsite.address : "",
                     items: items.map((i) => ({
                         description: i.description,
                         amount: parseFloat(i.amount) || 0,
@@ -69,6 +80,7 @@ export default function InvoicesView({ customers }) {
                 },
                 { withCredentials: true }
             );
+            setOffsite({ name: "", email: "", address: "" });
             setItems([{ description: "", amount: "" }]);
             setDueDate("");
             setStatus("draft");
@@ -109,7 +121,7 @@ export default function InvoicesView({ customers }) {
     const download = async (inv) => {
         const c = clientFor(inv);
         try {
-            await downloadInvoicePdf(inv, c.name, c.email);
+            await downloadInvoicePdf(inv, c.name, c.email, c.address || "");
             flash_(`Invoice ${inv.number} downloaded — attach it to your email.`);
         } catch {
             setError("Couldn't build the PDF — please try again.");
@@ -168,22 +180,53 @@ export default function InvoicesView({ customers }) {
                     data-testid="admin-invoice-form"
                     className="space-y-4 rounded-3xl border border-ink/10 bg-white/85 p-6 shadow-[0_14px_40px_rgba(10,10,10,0.06)]"
                 >
-                    <div className="grid gap-4 sm:grid-cols-3">
-                        <label className="block">
-                            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink/55">Client</span>
-                            <select
-                                data-testid="admin-invoice-client"
-                                value={clientId}
-                                onChange={(e) => setClientId(e.target.value)}
-                                className="mt-1.5 w-full rounded-xl border border-ink/20 bg-white px-3 py-2.5 text-sm font-medium"
+                    <div className="flex gap-2">
+                        {[
+                            { key: "registered", label: "Registered client", testid: "admin-invoice-type-registered" },
+                            { key: "offsite", label: "Off-site client (no account)", testid: "admin-invoice-type-offsite" },
+                        ].map((t) => (
+                            <button
+                                key={t.key}
+                                type="button"
+                                data-testid={t.testid}
+                                onClick={() => setClientType(t.key)}
+                                className={`rounded-full px-4 py-2 font-mono text-[9px] font-bold uppercase tracking-[0.12em] transition-colors ${
+                                    clientType === t.key ? "bg-ink text-paper" : "border border-ink/25 text-ink/70 hover:border-ink hover:text-ink"
+                                }`}
                             >
-                                {customers.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                        {c.name} — {c.email}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
+                                {t.label}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-3">
+                        {clientType === "registered" ? (
+                            <label className="block">
+                                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink/55">Client</span>
+                                <select
+                                    data-testid="admin-invoice-client"
+                                    value={clientId}
+                                    onChange={(e) => setClientId(e.target.value)}
+                                    className="mt-1.5 w-full rounded-xl border border-ink/20 bg-white px-3 py-2.5 text-sm font-medium"
+                                >
+                                    {customers.map((c) => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.name} — {c.email}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        ) : (
+                            <label className="block">
+                                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink/55">Client name *</span>
+                                <input
+                                    data-testid="admin-invoice-offsite-name"
+                                    placeholder="e.g. Sarah Hughes, Plympton"
+                                    value={offsite.name}
+                                    onChange={(e) => setOffsite((o) => ({ ...o, name: e.target.value }))}
+                                    className="mt-1.5 w-full rounded-xl border border-ink/20 bg-white px-3 py-2.5 text-sm font-medium"
+                                />
+                            </label>
+                        )}
                         <label className="block">
                             <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink/55">Due date</span>
                             <input
@@ -332,7 +375,9 @@ export default function InvoicesView({ customers }) {
                                         <StatusBadge value={inv.status} />
                                     </p>
                                     <p className="truncate text-xs font-medium text-ink/55">
-                                        {c.name} · {c.email} · due {fmtDay(inv.due_date)}
+                                        {c.name}
+                                        {!inv.customer_id && <span className="ml-1.5 rounded-full bg-ink/10 px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.1em] text-ink/60">Off-site</span>}
+                                        {c.email ? ` · ${c.email}` : ""} · due {fmtDay(inv.due_date)}
                                     </p>
                                     <p className="mt-0.5 truncate text-xs text-ink/45">
                                         {(inv.items || []).map((it) => it.description).filter(Boolean).join(", ") || "—"}
@@ -350,7 +395,7 @@ export default function InvoicesView({ customers }) {
                                         </button>
                                     ) : (
                                         <>
-                                            {inv.status !== "sent" && (
+                                            {inv.customer_id && inv.status !== "sent" && (
                                                 <button
                                                     data-testid={`admin-invoice-send-${i}`}
                                                     onClick={() => sendToClient(inv)}
