@@ -178,5 +178,21 @@ as a general background with scroll animations. Iterated direction (latest wins)
   All verified desktop + mobile on /visualiser: no overflow, flows PASS. New lib:
   frontend/src/lib/colour.js.
 
+- THREE MORE UPGRADES (owner: "first three options yes"):
+  1. MULTI-SURFACE LAYERS — Walls + Woodwork layers, each with its own colour (dot shown
+     on the layer chip), own auto-detect ("Detect walls" / "Detect woodwork" — woodwork
+     finds smooth strips/panels: skirting, doors, frames) and own brush strokes (red =
+     walls, blue = woodwork on the overlay); recolour applies walls first then woodwork
+     (woodwork wins overlaps). Surface selector chips show ready/not-marked status.
+  2. SHEEN PREVIEW — Matte / Silk / Gloss chips: silk lifts highlights subtly, gloss adds
+     a strong top-down light sheen curve on the painted area; description line updates.
+  3. SAVED LOOKS GALLERY — "Save this look" (flash confirmation) + "My looks (n)" toggle:
+     localStorage grid (max 12, 640px thumbs), each card opens back into the viewer;
+     Remove button per card.
+  Fixed: mobile overflow on the result view (grid min-w-0 + overflow-x-hidden); JSX
+  nesting bug in the gallery block. Verified desktop + mobile: layered recolour with two
+  colours at once, gloss/silk summary text, save→flash→gallery→reopen, no overflow
+  (scrollW 390 = clientW 390).
+
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.

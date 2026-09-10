@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import {
-    ChevronsLeftRight, Download, Mail, Paintbrush, RefreshCw, Share2, Sparkles,
-    Upload, Wand2, Undo2, Eraser, Wand,
+    ChevronsLeftRight, Download, Layers, Mail, Paintbrush, RefreshCw, Share2, Sparkles,
+    Upload, Wand2, Undo2, Eraser, Wand, Bookmark, Trash2, X,
 } from "lucide-react";
 import { waLink } from "@/constants/site";
 import { FadeUp, EASE } from "@/components/Reveal";
 import {
-    recolourImage, detectWallMask, drawColourWheel, hexToHsv, hsvToHex,
-    isValidHex, normaliseHex,
+    recolourLayers, detectWallMask, drawColourWheel, hexToHsv, hsvToHex,
+    isValidHex, normaliseHex, makeThumb,
 } from "@/lib/colour";
 
 const SWATCHES = [
@@ -56,6 +56,14 @@ const BRANDS = {
     dulux: { label: "Dulux", list: DULUX },
 };
 
+const SURFACES = {
+    walls: { label: "Walls", stroke: "#E63946" },
+    woodwork: { label: "Woodwork", stroke: "#1D4ED8" },
+};
+
+const SHEENS = ["matte", "silk", "gloss"];
+const LOOKS_KEY = "tmn-saved-looks";
+
 const API_BASE = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 async function fileToDataUrl(file) {
@@ -75,6 +83,14 @@ async function fileToDataUrl(file) {
         img.onerror = reject;
         img.src = url;
     });
+}
+
+function loadSavedLooks() {
+    try {
+        return JSON.parse(localStorage.getItem(LOOKS_KEY) || "[]");
+    } catch {
+        return [];
+    }
 }
 
 function BeforeAfter({ before, after }) {
@@ -198,7 +214,12 @@ export default function ColourStudio() {
     const [image, setImage] = useState(null);
     const [brushSize, setBrushSize] = useState(26);
     const [brand, setBrand] = useState("popular");
-    const [colour, setColour] = useState(SWATCHES[1]);
+    const [activeLayer, setActiveLayer] = useState("walls");
+    const [layerColours, setLayerColours] = useState({
+        walls: SWATCHES[1],
+        woodwork: { name: "Anthracite", hex: "#3D3D3D" },
+    });
+    const [sheen, setSheen] = useState("matte");
     const [customHex, setCustomHex] = useState("#1F3A93");
     const [hexInput, setHexInput] = useState("#1F3A93");
     const [result, setResult] = useState(null);
@@ -208,13 +229,16 @@ export default function ColourStudio() {
     const [emailState, setEmailState] = useState(null);
     const [emailing, setEmailing] = useState(false);
     const [strokes, setStrokes] = useState(0);
-    const [autoDone, setAutoDone] = useState(false);
+    const [autoDone, setAutoDone] = useState({ walls: false, woodwork: false });
+    const [savedLooks, setSavedLooks] = useState(() => loadSavedLooks());
+    const [showSaved, setShowSaved] = useState(false);
+    const [savedFlash, setSavedFlash] = useState("");
     const fileRef = useRef(null);
     const canvasRef = useRef(null);
     const imgRef = useRef(null);
     const drawing = useRef(false);
-    const strokesRef = useRef([]);
-    const autoMaskRef = useRef(null);
+    const strokesRef = useRef({ walls: [], woodwork: [] });
+    const autoMaskRef = useRef({ walls: null, woodwork: null });
 
     const redraw = () => {
         const canvas = canvasRef.current;
@@ -226,28 +250,31 @@ export default function ColourStudio() {
         }
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (autoMaskRef.current) {
-            ctx.drawImage(autoMaskRef.current, 0, 0, canvas.width, canvas.height);
-        }
-        ctx.strokeStyle = "#E63946";
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
         const scale = canvas.width / (canvas.getBoundingClientRect().width || 1);
-        for (const stroke of strokesRef.current) {
-            ctx.lineWidth = Math.max(6, stroke.size * scale);
-            ctx.beginPath();
-            stroke.points.forEach((pt, i) => {
-                const x = pt.x * canvas.width;
-                const y = pt.y * canvas.height;
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            });
-            if (stroke.points.length === 1) {
-                ctx.lineTo(stroke.points[0].x * canvas.width + 0.1, stroke.points[0].y * canvas.height);
+        for (const kind of ["walls", "woodwork"]) {
+            const col = SURFACES[kind].stroke;
+            if (autoMaskRef.current[kind]) {
+                ctx.drawImage(autoMaskRef.current[kind], 0, 0, canvas.width, canvas.height);
             }
-            ctx.stroke();
+            ctx.strokeStyle = col;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            for (const stroke of strokesRef.current[kind]) {
+                ctx.lineWidth = Math.max(6, stroke.size * scale);
+                ctx.beginPath();
+                stroke.points.forEach((pt, i) => {
+                    const x = pt.x * canvas.width;
+                    const y = pt.y * canvas.height;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                if (stroke.points.length === 1) {
+                    ctx.lineTo(stroke.points[0].x * canvas.width + 0.1, stroke.points[0].y * canvas.height);
+                }
+                ctx.stroke();
+            }
         }
-        setStrokes(strokesRef.current.length);
+        setStrokes(strokesRef.current[activeLayer].length);
     };
 
     const getPos = (e) => {
@@ -263,14 +290,14 @@ export default function ColourStudio() {
         e.preventDefault();
         drawing.current = true;
         e.target.setPointerCapture?.(e.pointerId);
-        strokesRef.current.push({ size: brushSize, points: [getPos(e)] });
+        strokesRef.current[activeLayer].push({ size: brushSize, points: [getPos(e)] });
         redraw();
     };
 
     const onPointerMove = (e) => {
         if (!drawing.current) return;
         e.preventDefault();
-        strokesRef.current[strokesRef.current.length - 1]?.points.push(getPos(e));
+        strokesRef.current[activeLayer][strokesRef.current[activeLayer].length - 1]?.points.push(getPos(e));
         redraw();
     };
 
@@ -284,9 +311,9 @@ export default function ColourStudio() {
         setError("");
         setResult(null);
         setEmailState(null);
-        strokesRef.current = [];
-        autoMaskRef.current = null;
-        setAutoDone(false);
+        strokesRef.current = { walls: [], woodwork: [] };
+        autoMaskRef.current = { walls: null, woodwork: null };
+        setAutoDone({ walls: false, woodwork: false });
         setStrokes(0);
         try {
             setImage(await fileToDataUrl(file));
@@ -298,8 +325,13 @@ export default function ColourStudio() {
     const autoDetect = () => {
         if (!imgRef.current) return;
         try {
-            autoMaskRef.current = detectWallMask(imgRef.current);
-            setAutoDone(true);
+            const m = detectWallMask(imgRef.current, activeLayer);
+            if (!m) {
+                setError(`Couldn't spot the ${SURFACES[activeLayer].label.toLowerCase()} automatically — brush over them instead.`);
+                return;
+            }
+            autoMaskRef.current[activeLayer] = m;
+            setAutoDone((s) => ({ ...s, [activeLayer]: true }));
         } catch {
             setError("Auto-detect couldn't read this photo — brush the area instead.");
         }
@@ -307,36 +339,39 @@ export default function ColourStudio() {
     };
 
     const undo = () => {
-        strokesRef.current.pop();
+        strokesRef.current[activeLayer].pop();
         redraw();
     };
 
     const clearBrush = () => {
-        strokesRef.current = [];
-        autoMaskRef.current = null;
-        setAutoDone(false);
+        strokesRef.current[activeLayer] = [];
+        autoMaskRef.current[activeLayer] = null;
+        setAutoDone((s) => ({ ...s, [activeLayer]: false }));
         redraw();
     };
 
     const applyCustomHex = (hex) => {
         setCustomHex(hex);
         setHexInput(hex);
-        setColour({ name: "Custom", hex });
+        setLayerColours((c) => ({ ...c, [activeLayer]: { name: "Custom", hex } }));
     };
 
     const generate = () => {
         if (!image || !imgRef.current) return;
-        if (!strokesRef.current.length && !autoMaskRef.current) {
+        const layers = ["walls", "woodwork"]
+            .filter((k) => strokesRef.current[k].length || autoMaskRef.current[k])
+            .map((kind) => ({ kind, hex: layerColours[kind].hex }));
+        if (!layers.length) {
             setError("Tap “Detect walls” or brush over the area you'd like repainted first.");
             return;
         }
         setError("");
         setBusy(true);
-        recolourImage(imgRef.current, canvasRef.current, colour.hex.toUpperCase(), (after) => {
-            setResult({
-                image: after,
-                prompt: `${colour.name}${colour.code ? " · " + colour.code : ""} (${colour.hex.toUpperCase()})`,
-            });
+        recolourLayers(imgRef.current, canvasRef.current, layers, sheen, (after) => {
+            const parts = layers.map(
+                (l) => `${SURFACES[l.kind].label}: ${layerColours[l.kind].name}${layerColours[l.kind].code ? " · " + layerColours[l.kind].code : ""} (${l.hex.toUpperCase()})`
+            );
+            setResult({ image: after, prompt: `${parts.join(" | ")} — ${sheen} finish` });
             setBusy(false);
         });
     };
@@ -344,6 +379,40 @@ export default function ColourStudio() {
     const reset = () => {
         setResult(null);
         setEmailState(null);
+    };
+
+    const saveLook = async () => {
+        if (!result) return;
+        try {
+            const [beforeT, afterT] = await Promise.all([makeThumb(image), makeThumb(result.image)]);
+            const entry = {
+                id: `${Date.now()}`,
+                at: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+                before: beforeT,
+                after: afterT,
+                prompt: result.prompt,
+                sheen,
+            };
+            const next = [entry, ...savedLooks].slice(0, 12);
+            localStorage.setItem(LOOKS_KEY, JSON.stringify(next));
+            setSavedLooks(next);
+            setSavedFlash("Saved to your looks ✓");
+            setTimeout(() => setSavedFlash(""), 2500);
+        } catch {
+            setSavedFlash("Couldn't save — your browser storage is full.");
+        }
+    };
+
+    const deleteLook = (id) => {
+        const next = savedLooks.filter((l) => l.id !== id);
+        setSavedLooks(next);
+        localStorage.setItem(LOOKS_KEY, JSON.stringify(next));
+    };
+
+    const openLook = (look) => {
+        setResult({ image: look.after, prompt: look.prompt });
+        setShowSaved(false);
+        window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     const shareLook = async () => {
@@ -385,9 +454,10 @@ export default function ColourStudio() {
     };
 
     const list = BRANDS[brand].list;
+    const activeColour = layerColours[activeLayer];
 
     return (
-        <section id="colours" data-testid="colour-studio" className="relative py-20 sm:py-28">
+        <section id="colours" data-testid="colour-studio" className="relative overflow-x-hidden py-20 sm:py-28">
             <div className="mx-auto max-w-[1600px] px-5 sm:px-8 lg:px-12">
                 <div className="mb-12 flex flex-col gap-6 sm:mb-14 sm:flex-row sm:items-end sm:justify-between">
                     <div>
@@ -412,7 +482,7 @@ export default function ColourStudio() {
                     </FadeUp>
                 </div>
 
-                <div className="grid gap-10 lg:grid-cols-[1fr_1.25fr] lg:gap-16">
+                <div className="grid gap-10 [&>*]:min-w-0 lg:grid-cols-[1fr_1.25fr] lg:gap-16">
                     {/* controls */}
                     <FadeUp delay={0.1}>
                         <div className="rounded-3xl border border-ink/10 bg-white/85 p-7 shadow-[0_24px_70px_rgba(10,10,10,0.09)] sm:p-9">
@@ -461,18 +531,53 @@ export default function ColourStudio() {
                                         />
                                     </div>
 
+                                    <div>
+                                        <p className="mb-2 flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/55">
+                                            <Layers className="h-3.5 w-3.5" /> Surface — paint each one its own colour
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-2.5">
+                                            {Object.entries(SURFACES).map(([kind, s]) => {
+                                                const active = activeLayer === kind;
+                                                const done = autoDone[kind] || strokesRef.current[kind].length > 0;
+                                                return (
+                                                    <button
+                                                        key={kind}
+                                                        data-testid={`colour-layer-${kind}`}
+                                                        onClick={() => setActiveLayer(kind)}
+                                                        className={`flex items-center gap-2.5 rounded-2xl border-2 px-4 py-3 text-left transition-colors ${
+                                                            active ? "border-ink bg-ink/[0.04]" : "border-ink/15 hover:border-ink/40"
+                                                        }`}
+                                                    >
+                                                        <span
+                                                            className="h-4 w-4 shrink-0 rounded-full ring-2 ring-white"
+                                                            style={{ backgroundColor: layerColours[kind].hex }}
+                                                        />
+                                                        <span>
+                                                            <span className={`block font-display text-sm font-bold uppercase tracking-tight ${active ? "text-ink" : "text-ink/70"}`}>
+                                                                {s.label}
+                                                            </span>
+                                                            <span className="block text-[10px] font-medium uppercase tracking-wider text-ink/45">
+                                                                {done ? "ready" : "not marked yet"}
+                                                            </span>
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                                         <button
                                             data-testid="colour-auto-detect"
                                             onClick={autoDetect}
                                             className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] transition-colors ${
-                                                autoDone
+                                                autoDone[activeLayer]
                                                     ? "border-[#C6A55C] bg-[#C6A55C]/10 text-ink"
                                                     : "border-ink/30 text-ink hover:border-ink hover:bg-ink hover:text-paper"
                                             }`}
                                         >
                                             <Wand className="h-3.5 w-3.5" />
-                                            {autoDone ? "Walls detected" : "Detect walls"}
+                                            {autoDone[activeLayer] ? `${SURFACES[activeLayer].label} detected` : `Detect ${SURFACES[activeLayer].label.toLowerCase()}`}
                                         </button>
                                         <button
                                             data-testid="colour-brush-undo"
@@ -492,9 +597,9 @@ export default function ColourStudio() {
                                             {strokes} {strokes === 1 ? "stroke" : "strokes"}
                                         </span>
                                     </div>
-                                    {autoDone && (
+                                    {autoDone[activeLayer] && (
                                         <p className="rounded-xl bg-[#C6A55C]/10 p-3 font-mono text-[10px] font-medium leading-relaxed text-ink/70" data-testid="colour-auto-status">
-                                            Walls detected automatically — brush to add or fix areas, then pick a colour.
+                                            {SURFACES[activeLayer].label} detected automatically — brush to add or fix areas, then pick a colour.
                                         </p>
                                     )}
 
@@ -514,6 +619,9 @@ export default function ColourStudio() {
                                     </div>
 
                                     <div>
+                                        <p className="mb-3 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/55">
+                                            Pick your paint — {SURFACES[activeLayer].label.toLowerCase()}
+                                        </p>
                                         <div className="mb-3 flex flex-wrap gap-1.5">
                                             {Object.entries(BRANDS).map(([key, b]) => (
                                                 <button
@@ -532,12 +640,12 @@ export default function ColourStudio() {
                                         </div>
                                         <div className="flex flex-wrap gap-2.5">
                                             {list.map((s) => {
-                                                const active = colour.name === s.name;
+                                                const active = activeColour.name === s.name;
                                                 return (
                                                     <button
                                                         key={s.name}
                                                         data-testid={`colour-swatch-${s.name.toLowerCase().replace(/[^a-z]+/g, "-")}`}
-                                                        onClick={() => setColour(s)}
+                                                        onClick={() => setLayerColours((c) => ({ ...c, [activeLayer]: s }))}
                                                         title={`${s.name}${s.code ? " · " + s.code : ""}`}
                                                         className={`h-10 w-10 rounded-full border-2 transition-transform duration-200 hover:scale-110 ${
                                                             active ? "scale-110 border-ink ring-2 ring-ink/30" : "border-ink/15"
@@ -550,9 +658,9 @@ export default function ColourStudio() {
                                             })}
                                         </div>
                                         <p className="mt-2 text-sm font-bold uppercase tracking-wide text-ink/75">
-                                            {colour.name}
-                                            {colour.code ? <span className="ml-2 font-mono text-[10px] font-medium text-ink/50">{colour.code}</span> : null}
-                                            <span className="ml-2 font-mono text-[10px] font-medium text-ink/50">{colour.hex.toUpperCase()}</span>
+                                            {activeColour.name}
+                                            {activeColour.code ? <span className="ml-2 font-mono text-[10px] font-medium text-ink/50">{activeColour.code}</span> : null}
+                                            <span className="ml-2 font-mono text-[10px] font-medium text-ink/50">{activeColour.hex.toUpperCase()}</span>
                                         </p>
                                         <p className="mt-1 text-[11px] font-medium text-ink/45">
                                             Brand colours are close digital matches — always order a
@@ -595,6 +703,33 @@ export default function ColourStudio() {
                                         )}
                                     </div>
 
+                                    <div>
+                                        <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/55">
+                                            Finish
+                                        </p>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {SHEENS.map((s) => (
+                                                <button
+                                                    key={s}
+                                                    data-testid={`colour-sheen-${s}`}
+                                                    onClick={() => setSheen(s)}
+                                                    className={`rounded-xl border-2 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.15em] transition-colors ${
+                                                        sheen === s
+                                                            ? "border-ink bg-ink text-paper"
+                                                            : "border-ink/20 text-ink/65 hover:border-ink hover:text-ink"
+                                                    }`}
+                                                >
+                                                    {s}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <p className="mt-2 text-[11px] font-medium text-ink/45">
+                                            {sheen === "matte" && "Flat, modern, no shine — the current UK favourite."}
+                                            {sheen === "silk" && "A gentle soft sheen that catches the light."}
+                                            {sheen === "gloss" && "High shine with strong light reflections — classic woodwork."}
+                                        </p>
+                                    </div>
+
                                     {error && <p className="text-sm font-medium text-red-700">{error}</p>}
 
                                     <button
@@ -632,6 +767,12 @@ export default function ColourStudio() {
                                         Colour applied: {result.prompt} — like it? We do this for real.
                                     </p>
 
+                                    {savedFlash && (
+                                        <p className="rounded-xl bg-green-50 p-3 text-sm font-medium text-green-800" data-testid="colour-saved-flash">
+                                            {savedFlash}
+                                        </p>
+                                    )}
+
                                     <div className="flex flex-wrap gap-3">
                                         <a
                                             data-testid="colour-result-download"
@@ -641,6 +782,13 @@ export default function ColourStudio() {
                                         >
                                             <Download className="h-4 w-4" /> Save it
                                         </a>
+                                        <button
+                                            data-testid="colour-save-look"
+                                            onClick={saveLook}
+                                            className="inline-flex items-center gap-2 rounded-full border border-ink/25 px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink transition-colors hover:border-ink hover:bg-ink hover:text-paper"
+                                        >
+                                            <Bookmark className="h-4 w-4" /> Save this look
+                                        </button>
                                         <button
                                             data-testid="colour-share-look"
                                             onClick={shareLook}
@@ -718,6 +866,53 @@ export default function ColourStudio() {
                         </div>
                     </FadeUp>
                 </div>
+
+                {/* saved looks gallery */}
+                {savedLooks.length > 0 && (
+                    <div className="mt-10">
+                        <button
+                            data-testid="colour-my-looks-toggle"
+                            onClick={() => setShowSaved((s) => !s)}
+                            className="inline-flex items-center gap-2 rounded-full border border-ink/25 px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink transition-colors hover:border-ink hover:bg-ink hover:text-paper"
+                        >
+                            <Bookmark className="h-4 w-4" /> My looks ({savedLooks.length})
+                        </button>
+                        {showSaved && (
+                            <div data-testid="colour-saved-grid" className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                                {savedLooks.map((look) => (
+                                    <div
+                                        key={look.id}
+                                        data-testid="colour-saved-card"
+                                        className="group overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-[0_10px_30px_rgba(10,10,10,0.08)]"
+                                    >
+                                        <button onClick={() => openLook(look)} className="block w-full text-left">
+                                            <img src={look.after} alt={look.prompt} className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                                            <p className="truncate px-3 pt-2 text-[11px] font-bold uppercase tracking-wide text-ink/80">
+                                                {look.prompt}
+                                            </p>
+                                            <p className="px-3 pb-2 font-mono text-[9px] uppercase tracking-[0.2em] text-ink/45">
+                                                {look.at} · {look.sheen}
+                                            </p>
+                                        </button>
+                                        <button
+                                            data-testid="colour-saved-delete"
+                                            onClick={() => deleteLook(look.id)}
+                                            className="flex w-full items-center justify-center gap-1.5 border-t border-ink/10 py-2 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-red-700/70 hover:bg-red-50 hover:text-red-700"
+                                        >
+                                            <Trash2 className="h-3 w-3" /> Remove
+                                        </button>
+                                    </div>
+                                ))}
+                            <button
+                                onClick={() => setShowSaved(false)}
+                                className="col-span-full mt-1 inline-flex items-center justify-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink/50 hover:text-ink"
+                            >
+                                <X className="h-3 w-3" /> Close my looks
+                            </button>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </section>
     );
