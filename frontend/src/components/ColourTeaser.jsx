@@ -1,4 +1,5 @@
-import { ArrowUpRight, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowRight, ArrowUpRight, Heart, Sparkles } from "lucide-react";
 import { FadeUp, EASE } from "@/components/Reveal";
 import { waLink } from "@/constants/site";
 
@@ -49,6 +50,19 @@ export default function ColourTeaser() {
                                 </a>
                             </div>
                         </div>
+                    </div>
+                </FadeUp>
+                <FadeUp delay={0.12}>
+                    <div className="mt-5 flex justify-center">
+                        <Link
+                            to="/favourites"
+                            data-testid="colour-top10-link"
+                            className="group inline-flex items-center gap-2.5 rounded-full border border-ink/20 bg-white/80 px-7 py-3.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink shadow-[0_10px_30px_rgba(10,10,10,0.08)] backdrop-blur-sm transition-colors duration-300 hover:border-ink hover:bg-ink hover:text-paper"
+                        >
+                            <Heart className="h-3.5 w-3.5 fill-[#C6A55C] text-[#C6A55C] transition-transform duration-300 group-hover:scale-125" />
+                            See the top 10 favourite colours
+                            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+                        </Link>
                     </div>
                 </FadeUp>
             </div>

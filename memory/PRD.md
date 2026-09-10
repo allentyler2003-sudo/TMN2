@@ -430,3 +430,11 @@ as a general background with scroll animations. Iterated direction (latest wins)
   TESTED: curl ranking — real favourites climb above presets (Sage green #1 after client
   hearts, Anthracite entered #2 on a new favourite), exactly 10 rows, zero counts/emails
   exposed; browser desktop+mobile — 10 rows render, nav tab navigates, no overflow.
+
+- OWNER: TOP-10 BUTTON UNDER THE TEST-YOUR-COLOURS SECTION (2026-09-10) — "where is the
+  option to view the top 10 colours — I want a tab I can click underneath the test your
+  colours section". DONE: white pill button "♥ SEE THE TOP 10 FAVOURITE COLOURS →"
+  (data-testid colour-top10-link) centered directly under the dark ColourTeaser card,
+  glassy bg-white/80 over the holo, hover → ink. Vital on mobile where the nav links are
+  hidden. TESTED: button present + navigates to /favourites on desktop and mobile, no
+  overflow.
