@@ -471,3 +471,15 @@ as a general background with scroll animations. Iterated direction (latest wins)
   aggregateRating (5.0, 16, bestRating 5) added to the existing LocalBusiness JSON-LD in
   public/index.html so Google can surface stars. TESTED: section + 4 cards + 5 stars render
   on desktop + mobile over the holo, no overflow; JSON-LD served (curl confirmed).
+
+- OWNER: VIEW-ALL-REVIEWS BUTTON + FULL /REVIEWS PAGE ON HOLO (2026-09-10) — "add a view
+  all reviews button underneath them, holo animated background still while scrolling
+  through them all on a separate tab". DONE: (1) "VIEW ALL REVIEWS →" glass pill centred
+  under the highlight cards in the homepage Reviews section (data-testid reviews-view-all).
+  (2) New page /reviews (ReviewsPage.jsx): HoloBackground + visualiser-style header
+  (Back to site / logo / QuoteCta), "WHAT CLIENTS SAY." hero with 5.0 stars line, 12
+  five-star review-highlight cards (masonry columns, paraphrased honestly from the
+  verified-review themes — quality/reliability/site care/social proof/all-round service,
+  attributed via platform), bottom CTAs to the visualiser + quote popup. Route added in
+  App.js. TESTED: button present + navigates to /reviews; 12 cards render; holo stays
+  fixed while scrolling the whole feed; desktop + mobile, no overflow.

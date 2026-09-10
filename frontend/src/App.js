@@ -7,6 +7,7 @@ import "@/App.css";
 import HoloBackground from "@/components/HoloBackground";
 import Cursor from "@/components/Cursor";
 import Favourites from "@/pages/Favourites";
+import ReviewsPage from "@/pages/ReviewsPage";
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
 import Marquee from "@/components/Marquee";
@@ -146,6 +147,7 @@ function App() {
                         <Route path="/" element={<Site />} />
                         <Route path="/visualiser" element={<Visualiser />} />
                         <Route path="/favourites" element={<Favourites />} />
+                        <Route path="/reviews" element={<ReviewsPage />} />
                         <Route path="/login" element={<Login />} />
                         <Route
                             path="/account"

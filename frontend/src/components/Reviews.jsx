@@ -1,4 +1,5 @@
-import { Star } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowRight, Star } from "lucide-react";
 import { FadeUp } from "@/components/Reveal";
 
 /* Real 5.0/5 rating across ~16 reviews (TopTenTrades 5.0, plus high praise on
@@ -100,6 +101,18 @@ export default function Reviews() {
                                 </div>
                             </FadeUp>
                         ))}
+                        <FadeUp delay={0.35} className="sm:col-span-2">
+                            <div className="flex justify-center pt-4">
+                                <Link
+                                    to="/reviews"
+                                    data-testid="reviews-view-all"
+                                    className="group inline-flex items-center gap-2.5 rounded-full border border-ink/20 bg-white/80 px-7 py-3.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink shadow-[0_10px_30px_rgba(10,10,10,0.08)] backdrop-blur-sm transition-colors duration-300 hover:border-ink hover:bg-ink hover:text-paper"
+                                >
+                                    View all reviews
+                                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+                                </Link>
+                            </div>
+                        </FadeUp>
                     </div>
                 </div>
             </div>
