@@ -256,7 +256,28 @@ as a general background with scroll animations. Iterated direction (latest wins)
 - P1: If the user's real photo still misbehaves (option B chosen): tune
   /app/scripts/test_wall_detect.mjs scenario values against THEIR photo via the Node
   harness, then port thresholds to colour.js (harness prints per-region coverage %).
-- P2 (refactor, outstanding since iteration_2): split ColourStudio.jsx (~1051 lines)
+- P2 (refactor, outstanding since iteration_2): split ColourStudio.jsx (~1100 lines)
   into BeforeAfter / ColourWheel / saved-looks components.
 - P2: silence pre-existing /api/auth/me 401 console noise on public pages.
 - P1: live Stripe keys (currently sandbox).
+- DECLINED by owner (2026-09-10): Admin Looks Gallery — do not build unless asked.
+
+- COLOUR FIDELITY ROOT-CAUSE FIX (user: "colours aren't appearing as the ones selected
+  and are fading into different colours on the walls") — THREE real bugs in colour.js:
+  (1) labToRgb back() gamma used the sRGB threshold 0.04045 on the LINEAR value instead
+  of 0.0031308 → every dark channel inflated (royal blue R came out 45 not 31) so painted
+  colours didn't match the selected swatch; (2) labToRgb G-row matrix coefficient 0.0557
+  → correct 0.0415 (green inflated ~9% on every painted colour); (3) recolourLayers kept
+  the photo's FULL lightness spread → colours read as "fading into different shades
+  across the wall"; now compressed to the target lightness (newL = tL + (raw−tL)×0.42,
+  clamped [tL−20, tL+16]) so the wall reads as the chosen colour with only subtle
+  shading. VERIFIED: /app/scripts/test_recolour.mjs (ivory spread 24.2→12.1, royal blue
+  20.8→7.5, Lab roundtrip EXACT for 6 colour families); testing agent iteration_4:
+  painted wall avg Lab within 0.2 of target, spread 0; detect mask 90.2% wall / 1.3%
+  sky / 0% ground; all regressions pass.
+- QUOTE WITH COLOURS (owner approved): "Get this look — quote" WhatsApp link now
+  prefills the message with the exact colours + finish chosen (result.prompt).
+- SMART COLOUR PAIRING (owner approved, spark): "Pairs well with" strip under the
+  swatches — 3 curated trim colours per wall-colour family (7 rules covering all brand
+  palettes, Lab-nearest fallback for custom hexes); tap applies to the woodwork layer.
+  Testing agent: all 7 trios exact, tap updates woodwork dot, no mobile overflow.

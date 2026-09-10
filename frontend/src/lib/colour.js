@@ -53,7 +53,10 @@ export function labToRgb(L, a, b) {
     const Y = 1.0 * fi(fy);
     const Z = 1.08883 * fi(fz);
     const back = (v) => {
-        const c = v > 0.04045 ? 1.055 * Math.pow(v, 1 / 2.4) - 0.055 : 12.92 * v;
+        // linear -> sRGB: the 12.92 branch ends at linear 0.0031308 (NOT the
+        // 0.04045 sRGB-domain threshold — using that inflated every dark
+        // channel, so painted colours didn't match the ones selected)
+        const c = v > 0.0031308 ? 1.055 * Math.pow(v, 1 / 2.4) - 0.055 : 12.92 * v;
         return Math.max(0, Math.min(255, Math.round(c * 255)));
     };
     return [
@@ -145,6 +148,11 @@ export function recolourLayers(baseImg, maskCanvas, layers, sheen, onDone) {
             const m = mRaw / 255;
             const [L] = rgbToLab(or_, og, ob);
             let newL = Math.max(0, Math.min(100, L * pass.scale));
+            // stay true to the chosen colour: keep only a subtle hint of the
+            // photo's own shading — preserving the full lightness spread read
+            // as the colour "fading" into different shades across the wall
+            newL = pass.tL + (newL - pass.tL) * 0.42;
+            newL = Math.max(pass.tL - 20, Math.min(pass.tL + 16, newL));
             const y = i / w / h;
             if (sheen === "silk") newL = Math.min(100, newL * (1 + 0.06 * (1 - y)));
             if (sheen === "gloss") newL = Math.min(100, newL * (1 + 0.26 * Math.pow(Math.max(0, 1 - y), 1.6)));

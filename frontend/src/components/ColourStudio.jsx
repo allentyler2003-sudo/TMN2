@@ -10,7 +10,7 @@ import { waLink } from "@/constants/site";
 import { FadeUp, EASE } from "@/components/Reveal";
 import {
     recolourLayers, detectWallMask, drawColourWheel, hexToHsv, hsvToHex,
-    isValidHex, normaliseHex, makeThumb,
+    hexToRgb, rgbToLab, isValidHex, normaliseHex, makeThumb,
 } from "@/lib/colour";
 
 const SWATCHES = [
@@ -67,6 +67,41 @@ const SHEENS = ["matte", "silk", "gloss"];
 const LOOKS_KEY = "tmn-saved-looks";
 
 const API_BASE = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+/* Smart colour pairing — curated trim suggestions for the chosen wall colour.
+   Each rule lists wall hexes it covers and the trio of trim colours (from the
+   brand palettes above) that flatter them; unknown colours snap to the nearest
+   rule in Lab space. */
+const ALL_SWATCHES = [...SWATCHES, ...FARROW_BALL, ...DULUX];
+
+const PAIRING_RULES = [
+    { match: ["#1F3A93", "#1B2A4A", "#33485D", "#47526E", "#3F6089"], trio: ["Heritage white", "Pigeon", "Elephant's Breath"] },
+    { match: ["#2C4A3B", "#435B51", "#9CBB99", "#9CAF88"], trio: ["Warm ivory", "Ammonite", "Dead Salmon"] },
+    { match: ["#36454F", "#3D3D3D", "#373F44", "#5E5B54"], trio: ["Warm ivory", "Dead Salmon", "Soft blush"] },
+    { match: ["#C1613B", "#BE5B2F", "#B1A289"], trio: ["Heritage white", "Pigeon", "Card Room Green"] },
+    { match: ["#E8C4C4", "#F3D7D8"], trio: ["Anthracite", "Mole's Breath", "Warm ivory"] },
+    { match: ["#7EB6D9", "#A3B7CD"], trio: ["Heritage white", "Anthracite", "Pigeon"] },
+    { match: ["#F5F0E1", "#F0EBE0", "#E9E1D2", "#DDD9CB", "#F3EBDC", "#DAD7CD", "#C0B3AB", "#A39C91", "#708090", "#9BA089"], trio: ["Hague Blue", "Forest green", "Charcoal"] },
+];
+
+function pickPairings(hex) {
+    const h = normaliseHex(hex).toUpperCase();
+    const rule = PAIRING_RULES.find((r) => r.match.includes(h));
+    let chosen = rule;
+    if (!chosen) {
+        const [L1, a1, b1] = rgbToLab(...hexToRgb(h));
+        let bestD = Infinity;
+        for (const r of PAIRING_RULES) {
+            const [L2, a2, b2] = rgbToLab(...hexToRgb(r.match[0]));
+            const d = (L1 - L2) ** 2 + (a1 - a2) ** 2 + (b1 - b2) ** 2;
+            if (d < bestD) {
+                bestD = d;
+                chosen = r;
+            }
+        }
+    }
+    return chosen.trio.map((name) => ALL_SWATCHES.find((s) => s.name === name)).filter(Boolean);
+}
 
 async function fileToDataUrl(file) {
     return new Promise((resolve, reject) => {
@@ -501,6 +536,7 @@ export default function ColourStudio() {
 
     const list = BRANDS[brand].list;
     const activeColour = layerColours[activeLayer];
+    const pairings = pickPairings(activeColour.hex);
 
     return (
         <section id="colours" data-testid="colour-studio" className="relative overflow-x-hidden py-20 sm:py-28">
@@ -734,6 +770,29 @@ export default function ColourStudio() {
                                             Brand colours are close digital matches — always order a
                                             sample pot before committing.
                                         </p>
+                                        {pairings.length > 0 && (
+                                            <div className="mt-4" data-testid="colour-pairings">
+                                                <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/55">
+                                                    Pairs well with — tap to use on the woodwork
+                                                </p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {pairings.map((p) => (
+                                                        <button
+                                                            key={p.name}
+                                                            data-testid={`colour-pairing-${p.name.toLowerCase().replace(/[^a-z]+/g, "-")}`}
+                                                            onClick={() => setLayerColours((c) => ({ ...c, woodwork: p }))}
+                                                            className="flex items-center gap-2 rounded-full border border-ink/20 px-3.5 py-2 text-xs font-bold text-ink/75 transition-colors hover:border-ink hover:bg-ink hover:text-paper"
+                                                        >
+                                                            <span
+                                                                className="h-3.5 w-3.5 shrink-0 rounded-full ring-1 ring-ink/20"
+                                                                style={{ backgroundColor: p.hex }}
+                                                            />
+                                                            {p.name}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="rounded-2xl border border-ink/10 bg-ink/[0.03] p-4">
@@ -872,7 +931,11 @@ export default function ColourStudio() {
                                             <Sparkles className="h-4 w-4" /> Try another colour
                                         </button>
                                         <a
-                                            href={waLink("Hi TMN — I tested colours with your visualiser and I'd like a quote.")}
+                                            href={waLink(
+                                                result
+                                                    ? `Hi TMN — I tested colours with your visualiser: ${result.prompt}. I'd like a quote for this look.`
+                                                    : "Hi TMN — I tested colours with your visualiser and I'd like a quote."
+                                            )}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             data-testid="colour-quote-link"
