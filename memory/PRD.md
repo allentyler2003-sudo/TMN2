@@ -161,5 +161,22 @@ as a general background with scroll animations. Iterated direction (latest wins)
   ✓, /visualiser full brush flow E2E ✓ (instant blue repaint visible in slider), desktop +
   mobile, no overflow. Homepage space reclaimed.
 
+- FOUR VISUALISER UPGRADES (owner: "first three options yes + colour wheel/code"):
+  1. AUTO WALL DETECTION — "Detect walls" button (lib/colour.js): seed-based flood fill
+     from upper-middle of the photo with colour tolerance + sky rejection; mask drawn to
+     the brush canvas as a base layer; brush = touch-ups; Clear resets. Verified: mask hits
+     wall (230) not floor/sofa (0); auto-recolour lands exactly on target colour.
+  2. BRAND PALETTES — tabs Popular / Farrow & Ball (10 real names+No. codes: Hague Blue,
+     Railings, Pigeon, Mole's Breath, Ammonite, Elephant's Breath, Card Room Green, Dead
+     Salmon, Inchyra Blue, Charlotte's Locks) / Dulux (8: Egyptian Cotton, Goose Down,
+     Nutmeg White, Polished Pebble, Denim Drift, Sapphire Salute, Emerald Glade, Cherry
+     Blossom) — with "close digital match, order a sample pot" disclaimer.
+  3. SHARE MY LOOK — Web Share API with the actual image file (mobile WhatsApp direct);
+     fallback = download + wa.me prefilled.
+  4. COLOUR WHEEL + CODE — custom HSV colour wheel (canvas) + brightness slider + hex code
+     input with validation (3/6 digit) + Apply; syncs both ways.
+  All verified desktop + mobile on /visualiser: no overflow, flows PASS. New lib:
+  frontend/src/lib/colour.js.
+
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.

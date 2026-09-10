@@ -1,8 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { ChevronsLeftRight, Download, Mail, Paintbrush, RefreshCw, Sparkles, Upload, Wand2, Undo2, Eraser } from "lucide-react";
+import {
+    ChevronsLeftRight, Download, Mail, Paintbrush, RefreshCw, Share2, Sparkles,
+    Upload, Wand2, Undo2, Eraser, Wand,
+} from "lucide-react";
 import { waLink } from "@/constants/site";
 import { FadeUp, EASE } from "@/components/Reveal";
+import {
+    recolourImage, detectWallMask, drawColourWheel, hexToHsv, hsvToHex,
+    isValidHex, normaliseHex,
+} from "@/lib/colour";
 
 const SWATCHES = [
     { name: "Sage green", hex: "#9CAF88" },
@@ -18,6 +25,36 @@ const SWATCHES = [
     { name: "Terracotta", hex: "#C1613B" },
     { name: "Sky blue", hex: "#7EB6D9" },
 ];
+
+const FARROW_BALL = [
+    { name: "Hague Blue", code: "No. 30", hex: "#33485D" },
+    { name: "Railings", code: "No. 31", hex: "#373F44" },
+    { name: "Pigeon", code: "No. 25", hex: "#9BA089" },
+    { name: "Mole's Breath", code: "No. 276", hex: "#5E5B54" },
+    { name: "Ammonite", code: "No. 274", hex: "#C0B3AB" },
+    { name: "Elephant's Breath", code: "No. 229", hex: "#A39C91" },
+    { name: "Card Room Green", code: "No. 79", hex: "#435B51" },
+    { name: "Dead Salmon", code: "No. 28", hex: "#B1A289" },
+    { name: "Inchyra Blue", code: "No. 289", hex: "#47526E" },
+    { name: "Charlotte's Locks", code: "No. 268", hex: "#BE5B2F" },
+];
+
+const DULUX = [
+    { name: "Egyptian Cotton", code: "Dulux", hex: "#E9E1D2" },
+    { name: "Goose Down", code: "Dulux", hex: "#DDD9CB" },
+    { name: "Nutmeg White", code: "Dulux", hex: "#F3EBDC" },
+    { name: "Polished Pebble", code: "Dulux", hex: "#DAD7CD" },
+    { name: "Denim Drift", code: "Dulux", hex: "#A3B7CD" },
+    { name: "Sapphire Salute", code: "Dulux", hex: "#3F6089" },
+    { name: "Emerald Glade", code: "Dulux", hex: "#9CBB99" },
+    { name: "Cherry Blossom", code: "Dulux", hex: "#F3D7D8" },
+];
+
+const BRANDS = {
+    popular: { label: "Popular", list: SWATCHES },
+    farrow: { label: "Farrow & Ball", list: FARROW_BALL },
+    dulux: { label: "Dulux", list: DULUX },
+};
 
 const API_BASE = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -38,102 +75,6 @@ async function fileToDataUrl(file) {
         img.onerror = reject;
         img.src = url;
     });
-}
-
-/* ---- paint-true colour maths: keep the photo's lightness and shading,
-       replace the hue/saturation with the chosen paint colour ---- */
-function hexToRgb(hex) {
-    const n = parseInt(hex.slice(1), 16);
-    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
-
-function rgbToLab(r, g, b) {
-    const lin = (c) => {
-        c /= 255;
-        return c > 0.04045 ? Math.pow((c + 0.055) / 1.055, 2.4) : c / 12.92;
-    };
-    const R = lin(r), G = lin(g), B = lin(b);
-    const X = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047;
-    const Y = R * 0.2126 + G * 0.7152 + B * 0.0722;
-    const Z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
-    const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
-    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
-}
-
-function labToRgb(L, a, b) {
-    const fy = (L + 16) / 116;
-    const fx = fy + a / 500;
-    const fz = fy - b / 200;
-    const fi = (t) => {
-        const t3 = t * t * t;
-        return t3 > 0.008856 ? t3 : (t - 16 / 116) / 7.787;
-    };
-    const X = 0.95047 * fi(fx);
-    const Y = 1.0 * fi(fy);
-    const Z = 1.08883 * fi(fz);
-    const back = (v) => {
-        const c = v > 0.04045 ? 1.055 * Math.pow(v, 1 / 2.4) - 0.055 : 12.92 * v;
-        return Math.max(0, Math.min(255, Math.round(c * 255)));
-    };
-    const r = back(3.2406 * X - 1.5372 * Y - 0.4986 * Z);
-    const g = back(-0.9689 * X + 1.8758 * Y + 0.0415 * Z);
-    const bl = back(0.0557 * X - 0.204 * Y + 1.057 * Z);
-    return [r, g, bl];
-}
-
-function recolourImage(baseImg, maskCanvas, targetHex, onDone) {
-    const w = baseImg.naturalWidth;
-    const h = baseImg.naturalHeight;
-    const base = document.createElement("canvas");
-    base.width = w;
-    base.height = h;
-    const bctx = base.getContext("2d");
-    bctx.drawImage(baseImg, 0, 0, w, h);
-    const baseData = bctx.getImageData(0, 0, w, h);
-    const maskData = maskCanvas.getContext("2d").getImageData(0, 0, w, h);
-
-    const [tr, tg, tb] = hexToRgb(targetHex);
-    const [tL, ta, tbb] = rgbToLab(tr, tg, tb);
-
-    // average lightness of the brushed area, so dark paints darken and light
-    // paints lift the area while every bit of shading and texture is kept
-    let sumL = 0;
-    let count = 0;
-    for (let i = 0; i < w * h; i++) {
-        if (maskData.data[i * 4] > 40) {
-            const [L] = rgbToLab(baseData.data[i * 4], baseData.data[i * 4 + 1], baseData.data[i * 4 + 2]);
-            sumL += L;
-            count++;
-        }
-    }
-    const avgL = count ? sumL / count : tL;
-    const scale = count ? tL / avgL : 1;
-
-    const out = bctx.createImageData(w, h);
-    for (let i = 0; i < w * h; i++) {
-        const p = i * 4;
-        const m = maskData.data[p] / 255;
-        const r = baseData.data[p];
-        const g = baseData.data[p + 1];
-        const b = baseData.data[p + 2];
-        if (m < 0.04) {
-            out.data[p] = r;
-            out.data[p + 1] = g;
-            out.data[p + 2] = b;
-            out.data[p + 3] = 255;
-            continue;
-        }
-        const [L] = rgbToLab(r, g, b);
-        const newL = Math.max(0, Math.min(100, L * scale));
-        const [nr, ng, nb] = labToRgb(newL, ta, tbb);
-        // feathered blend at the brush edges so strokes melt into the photo
-        out.data[p] = r * (1 - m) + nr * m;
-        out.data[p + 1] = g * (1 - m) + ng * m;
-        out.data[p + 2] = b * (1 - m) + nb * m;
-        out.data[p + 3] = 255;
-    }
-    bctx.putImageData(out, 0, 0);
-    onDone(base.toDataURL("image/jpeg", 0.92));
 }
 
 function BeforeAfter({ before, after }) {
@@ -188,11 +129,78 @@ function BeforeAfter({ before, after }) {
     );
 }
 
+function ColourWheel({ hex, onChange }) {
+    const wheelRef = useRef(null);
+    const [hsv, setHsv] = useState(() => hexToHsv(hex));
+    const dragging = useRef(false);
+
+    useEffect(() => {
+        const c = wheelRef.current;
+        if (c) drawColourWheel(c);
+    }, []);
+
+    useEffect(() => {
+        setHsv(hexToHsv(hex));
+    }, [hex]);
+
+    const pick = (e) => {
+        const c = wheelRef.current;
+        const r = c.getBoundingClientRect();
+        const dx = e.clientX - (r.left + r.width / 2);
+        const dy = e.clientY - (r.top + r.height / 2);
+        const dist = Math.min(1, Math.sqrt(dx * dx + dy * dy) / (r.width / 2));
+        const hue = ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
+        setHsv([hue, dist, hsv[2]]);
+        onChange(hsvToHex(hue, dist, hsv[2]));
+    };
+
+    return (
+        <div className="flex items-center gap-4">
+            <canvas
+                ref={wheelRef}
+                data-testid="colour-wheel"
+                width={110}
+                height={110}
+                className="h-[110px] w-[110px] shrink-0 cursor-crosshair rounded-full shadow-[0_10px_30px_rgba(10,10,10,0.18)] ring-1 ring-ink/10"
+                style={{ touchAction: "none" }}
+                onPointerDown={(e) => {
+                    dragging.current = true;
+                    pick(e);
+                }}
+                onPointerMove={(e) => dragging.current && pick(e)}
+                onPointerUp={() => (dragging.current = false)}
+                onPointerLeave={() => (dragging.current = false)}
+            />
+            <div className="min-w-0 flex-1 space-y-3">
+                <input
+                    data-testid="colour-wheel-brightness"
+                    type="range"
+                    min="15"
+                    max="100"
+                    value={Math.round(hsv[2] * 100)}
+                    onChange={(e) => {
+                        const v = Number(e.target.value) / 100;
+                        setHsv([hsv[0], hsv[1], v]);
+                        onChange(hsvToHex(hsv[0], hsv[1], v));
+                    }}
+                    className="w-full accent-ink"
+                />
+                <p className="text-xs font-medium leading-snug text-ink/55">
+                    Spin the wheel to choose a hue, slide for brightness — or type an exact
+                    colour code below.
+                </p>
+            </div>
+        </div>
+    );
+}
+
 export default function ColourStudio() {
     const [image, setImage] = useState(null);
     const [brushSize, setBrushSize] = useState(26);
+    const [brand, setBrand] = useState("popular");
     const [colour, setColour] = useState(SWATCHES[1]);
-    const [customColour, setCustomColour] = useState("#1F3A93");
+    const [customHex, setCustomHex] = useState("#1F3A93");
+    const [hexInput, setHexInput] = useState("#1F3A93");
     const [result, setResult] = useState(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
@@ -200,11 +208,13 @@ export default function ColourStudio() {
     const [emailState, setEmailState] = useState(null);
     const [emailing, setEmailing] = useState(false);
     const [strokes, setStrokes] = useState(0);
+    const [autoDone, setAutoDone] = useState(false);
     const fileRef = useRef(null);
     const canvasRef = useRef(null);
     const imgRef = useRef(null);
     const drawing = useRef(false);
     const strokesRef = useRef([]);
+    const autoMaskRef = useRef(null);
 
     const redraw = () => {
         const canvas = canvasRef.current;
@@ -216,6 +226,9 @@ export default function ColourStudio() {
         }
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (autoMaskRef.current) {
+            ctx.drawImage(autoMaskRef.current, 0, 0, canvas.width, canvas.height);
+        }
         ctx.strokeStyle = "#E63946";
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
@@ -272,12 +285,25 @@ export default function ColourStudio() {
         setResult(null);
         setEmailState(null);
         strokesRef.current = [];
+        autoMaskRef.current = null;
+        setAutoDone(false);
         setStrokes(0);
         try {
             setImage(await fileToDataUrl(file));
         } catch {
             setError("That image could not be read — try a different photo.");
         }
+    };
+
+    const autoDetect = () => {
+        if (!imgRef.current) return;
+        try {
+            autoMaskRef.current = detectWallMask(imgRef.current);
+            setAutoDone(true);
+        } catch {
+            setError("Auto-detect couldn't read this photo — brush the area instead.");
+        }
+        redraw();
     };
 
     const undo = () => {
@@ -287,22 +313,29 @@ export default function ColourStudio() {
 
     const clearBrush = () => {
         strokesRef.current = [];
+        autoMaskRef.current = null;
+        setAutoDone(false);
         redraw();
+    };
+
+    const applyCustomHex = (hex) => {
+        setCustomHex(hex);
+        setHexInput(hex);
+        setColour({ name: "Custom", hex });
     };
 
     const generate = () => {
         if (!image || !imgRef.current) return;
-        if (!strokesRef.current.length) {
-            setError("Brush over the area you'd like repainted first — walls, door, woodwork, anything.");
+        if (!strokesRef.current.length && !autoMaskRef.current) {
+            setError("Tap “Detect walls” or brush over the area you'd like repainted first.");
             return;
         }
         setError("");
         setBusy(true);
-        const targetHex = (colour.name === "Custom" ? customColour : colour.hex).toUpperCase();
-        recolourImage(imgRef.current, canvasRef.current, targetHex, (after) => {
+        recolourImage(imgRef.current, canvasRef.current, colour.hex.toUpperCase(), (after) => {
             setResult({
                 image: after,
-                prompt: `${colour.name === "Custom" ? "Custom colour" : colour.name} (${targetHex})`,
+                prompt: `${colour.name}${colour.code ? " · " + colour.code : ""} (${colour.hex.toUpperCase()})`,
             });
             setBusy(false);
         });
@@ -311,6 +344,26 @@ export default function ColourStudio() {
     const reset = () => {
         setResult(null);
         setEmailState(null);
+    };
+
+    const shareLook = async () => {
+        if (!result) return;
+        const text = `Hi TMN — here's the look I created: ${result.prompt}. I'd love a quote for this.`;
+        try {
+            const blob = await (await fetch(result.image)).blob();
+            const file = new File([blob], "tmn-my-look.jpg", { type: "image/jpeg" });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: "My TMN look", text });
+                return;
+            }
+        } catch {
+            /* dismissed or unsupported — fall through to download + WhatsApp */
+        }
+        const a = document.createElement("a");
+        a.href = result.image;
+        a.download = "tmn-my-look.jpg";
+        a.click();
+        window.open(waLink(text + " (I've saved the photo — attaching it here)"), "_blank");
     };
 
     const sendEmail = async () => {
@@ -330,6 +383,8 @@ export default function ColourStudio() {
             setEmailing(false);
         }
     };
+
+    const list = BRANDS[brand].list;
 
     return (
         <section id="colours" data-testid="colour-studio" className="relative py-20 sm:py-28">
@@ -406,18 +461,18 @@ export default function ColourStudio() {
                                         />
                                     </div>
 
-                                    <div className="flex flex-wrap items-center gap-4">
+                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                                         <button
-                                            data-testid="colour-change-photo"
-                                            onClick={() => {
-                                                setImage(null);
-                                                reset();
-                                                strokesRef.current = [];
-                                                setStrokes(0);
-                                            }}
-                                            className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink/60 hover:text-ink"
+                                            data-testid="colour-auto-detect"
+                                            onClick={autoDetect}
+                                            className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] transition-colors ${
+                                                autoDone
+                                                    ? "border-[#C6A55C] bg-[#C6A55C]/10 text-ink"
+                                                    : "border-ink/30 text-ink hover:border-ink hover:bg-ink hover:text-paper"
+                                            }`}
                                         >
-                                            <RefreshCw className="h-3 w-3" /> Change photo
+                                            <Wand className="h-3.5 w-3.5" />
+                                            {autoDone ? "Walls detected" : "Detect walls"}
                                         </button>
                                         <button
                                             data-testid="colour-brush-undo"
@@ -437,6 +492,11 @@ export default function ColourStudio() {
                                             {strokes} {strokes === 1 ? "stroke" : "strokes"}
                                         </span>
                                     </div>
+                                    {autoDone && (
+                                        <p className="rounded-xl bg-[#C6A55C]/10 p-3 font-mono text-[10px] font-medium leading-relaxed text-ink/70" data-testid="colour-auto-status">
+                                            Walls detected automatically — brush to add or fix areas, then pick a colour.
+                                        </p>
+                                    )}
 
                                     <div>
                                         <p className="mb-3 flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/55">
@@ -451,25 +511,34 @@ export default function ColourStudio() {
                                             onChange={(e) => setBrushSize(Number(e.target.value))}
                                             className="w-full accent-ink"
                                         />
-                                        <p className="mt-1 text-xs font-medium text-ink/50">
-                                            Brush over the walls, door or woodwork — anywhere you want
-                                            the new colour. Bigger brush for walls, smaller for edges.
-                                        </p>
                                     </div>
 
                                     <div>
-                                        <p className="mb-3 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/55">
-                                            Pick your paint
-                                        </p>
+                                        <div className="mb-3 flex flex-wrap gap-1.5">
+                                            {Object.entries(BRANDS).map(([key, b]) => (
+                                                <button
+                                                    key={key}
+                                                    data-testid={`colour-brand-${key}`}
+                                                    onClick={() => setBrand(key)}
+                                                    className={`rounded-full px-3.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] transition-colors ${
+                                                        brand === key
+                                                            ? "bg-ink text-paper"
+                                                            : "border border-ink/25 text-ink/65 hover:border-ink hover:text-ink"
+                                                    }`}
+                                                >
+                                                    {b.label}
+                                                </button>
+                                            ))}
+                                        </div>
                                         <div className="flex flex-wrap gap-2.5">
-                                            {SWATCHES.map((s) => {
+                                            {list.map((s) => {
                                                 const active = colour.name === s.name;
                                                 return (
                                                     <button
                                                         key={s.name}
                                                         data-testid={`colour-swatch-${s.name.toLowerCase().replace(/[^a-z]+/g, "-")}`}
                                                         onClick={() => setColour(s)}
-                                                        title={s.name}
+                                                        title={`${s.name}${s.code ? " · " + s.code : ""}`}
                                                         className={`h-10 w-10 rounded-full border-2 transition-transform duration-200 hover:scale-110 ${
                                                             active ? "scale-110 border-ink ring-2 ring-ink/30" : "border-ink/15"
                                                         }`}
@@ -479,27 +548,51 @@ export default function ColourStudio() {
                                                     </button>
                                                 );
                                             })}
-                                            <label
-                                                data-testid="colour-custom-colour"
-                                                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 border-dashed border-ink/30 font-mono text-[9px] font-bold text-ink/60 hover:border-ink"
-                                                title="Any custom colour"
-                                            >
-                                                ?
-                                                <input
-                                                    type="color"
-                                                    data-testid="colour-custom-input"
-                                                    value={customColour}
-                                                    onChange={(e) => {
-                                                        setCustomColour(e.target.value);
-                                                        setColour({ name: "Custom", hex: e.target.value });
-                                                    }}
-                                                    className="h-0 w-0 opacity-0"
-                                                />
-                                            </label>
                                         </div>
                                         <p className="mt-2 text-sm font-bold uppercase tracking-wide text-ink/75">
-                                            {colour.name === "Custom" ? `Custom ${customColour.toUpperCase()}` : colour.name}
+                                            {colour.name}
+                                            {colour.code ? <span className="ml-2 font-mono text-[10px] font-medium text-ink/50">{colour.code}</span> : null}
+                                            <span className="ml-2 font-mono text-[10px] font-medium text-ink/50">{colour.hex.toUpperCase()}</span>
                                         </p>
+                                        <p className="mt-1 text-[11px] font-medium text-ink/45">
+                                            Brand colours are close digital matches — always order a
+                                            sample pot before committing.
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-2xl border border-ink/10 bg-ink/[0.03] p-4">
+                                        <p className="mb-3 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/55">
+                                            Custom colour — wheel or code
+                                        </p>
+                                        <ColourWheel hex={customHex} onChange={applyCustomHex} />
+                                        <div className="mt-3 flex items-center gap-2.5">
+                                            <input
+                                                data-testid="colour-code-input"
+                                                type="text"
+                                                value={hexInput}
+                                                onChange={(e) => setHexInput(e.target.value)}
+                                                onKeyDown={(e) => e.key === "Enter" && isValidHex(hexInput) && applyCustomHex(normaliseHex(hexInput))}
+                                                placeholder="Colour code e.g. 1F3A93"
+                                                className="min-w-0 flex-1 rounded-full border border-ink/20 bg-white px-4 py-2.5 font-mono text-sm font-medium placeholder:text-ink/40 focus:border-ink focus:outline-none"
+                                            />
+                                            <button
+                                                data-testid="colour-code-apply"
+                                                onClick={() => isValidHex(hexInput) && applyCustomHex(normaliseHex(hexInput))}
+                                                className={`rounded-full px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.15em] transition-colors ${
+                                                    isValidHex(hexInput)
+                                                        ? "bg-ink text-paper hover:opacity-90"
+                                                        : "cursor-not-allowed bg-ink/10 text-ink/40"
+                                                }`}
+                                            >
+                                                Apply
+                                            </button>
+                                        </div>
+                                        {!isValidHex(hexInput) && hexInput.trim() !== "" && (
+                                            <p className="mt-2 text-xs font-medium text-red-700">
+                                                That doesn't look like a colour code — use hex like
+                                                1F3A93 or 039.
+                                            </p>
+                                        )}
                                     </div>
 
                                     {error && <p className="text-sm font-medium text-red-700">{error}</p>}
@@ -548,6 +641,13 @@ export default function ColourStudio() {
                                         >
                                             <Download className="h-4 w-4" /> Save it
                                         </a>
+                                        <button
+                                            data-testid="colour-share-look"
+                                            onClick={shareLook}
+                                            className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-white transition-transform hover:scale-105 active:scale-95"
+                                        >
+                                            <Share2 className="h-4 w-4" /> Share my look
+                                        </button>
                                         <button
                                             data-testid="colour-try-another"
                                             onClick={reset}
@@ -609,9 +709,9 @@ export default function ColourStudio() {
                                         <Sparkles className="h-9 w-9 text-ink/40" strokeWidth={1.25} />
                                     </div>
                                     <p className="max-w-[280px] text-sm font-medium leading-relaxed text-ink/55">
-                                        Your before &amp; after appears here — brush over your walls,
-                                        pick a colour and drag the slider to reveal your newly painted
-                                        home.
+                                        Your before &amp; after appears here — tap “Detect walls”,
+                                        pick a colour and drag the slider to reveal your newly
+                                        painted home.
                                     </p>
                                 </div>
                             )}
