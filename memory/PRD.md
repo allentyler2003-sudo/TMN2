@@ -513,3 +513,7 @@ as a general background with scroll animations. Iterated direction (latest wins)
   reviews button now reads just "Reviews" (no star icon) on desktop and mobile; unused
   Star import cleaned. TESTED: no svg in the button either viewport, label intact,
   navigates to /reviews, no overflow.
+
+- OWNER: HEADER REVIEWS BUTTON SIZED TO MATCH (2026-09-10) — Reviews button now uses the
+  exact same mono pill styling/size as Log in (37px height both, desktop + mobile).
+  TESTED: measured equal heights, no overflow.

@@ -99,9 +99,9 @@ export default function Nav() {
                         to="/reviews"
                         data-testid="nav-reviews-button"
                         title="Read our 5.0-star reviews"
-                        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-ink/25 bg-white/70 px-3.5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-ink backdrop-blur-sm transition-colors duration-300 hover:border-[#C6A55C] hover:bg-[#C6A55C]/15 sm:px-5"
+                        className="whitespace-nowrap rounded-full border border-ink/25 px-3.5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-ink transition-colors duration-300 hover:border-ink hover:bg-ink hover:text-paper sm:px-5"
                     >
-                        <span className="font-display text-base font-bold uppercase tracking-tight">Reviews</span>
+                        Reviews
                     </Link>
                     <a
                         href={accountHref}
