@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Heart } from "lucide-react";
 import axios from "axios";
 import HoloBackground from "@/components/HoloBackground";
 import { FadeUp } from "@/components/Reveal";
-import { waLink } from "@/constants/site";
+import QuoteCta from "@/components/QuoteCta";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -40,15 +40,12 @@ export default function Favourites() {
                             data-testid="favourites-logo"
                             className="h-9 w-auto sm:h-12"
                         />
-                        <a
-                            href={waLink("Hi TMN — I'd love a quote for painting in one of your favourite colours.")}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            data-testid="favourites-quote"
+                        <QuoteCta
+                            testid="favourites-quote"
                             className="inline-flex items-center whitespace-nowrap rounded-full bg-ink px-3.5 py-2 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-paper transition-transform hover:scale-105 active:scale-95 sm:px-6 sm:py-2.5 sm:text-[10px] sm:tracking-[0.2em]"
                         >
                             Get a quote •
-                        </a>
+                        </QuoteCta>
                     </div>
                 </header>
 

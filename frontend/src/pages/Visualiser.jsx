@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import ColourStudio from "@/components/ColourStudio";
 import HoloBackground from "@/components/HoloBackground";
-import { waLink } from "@/constants/site";
+import QuoteCta from "@/components/QuoteCta";
 
 export default function Visualiser() {
     return (
@@ -23,15 +23,12 @@ export default function Visualiser() {
                         data-testid="visualiser-logo"
                         className="h-9 w-auto sm:h-12"
                     />
-                    <a
-                        href={waLink("Hi TMN — I used your colour visualiser and I'd like a quote.")}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        data-testid="visualiser-quote"
+                    <QuoteCta
+                        testid="visualiser-quote"
                         className="inline-flex items-center whitespace-nowrap rounded-full bg-ink px-3.5 py-2 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-paper transition-transform hover:scale-105 active:scale-95 sm:px-6 sm:py-2.5 sm:text-[10px] sm:tracking-[0.2em]"
                     >
                         Get a quote •
-                    </a>
+                    </QuoteCta>
                 </div>
             </header>
             <main>

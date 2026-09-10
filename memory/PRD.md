@@ -443,3 +443,18 @@ as a general background with scroll animations. Iterated direction (latest wins)
   colour-advice anchor from the ColourTeaser card (unused waLink import cleaned up too).
   The card now has just the gold "Open the visualiser" button + the top-10 pill beneath.
   TESTED: gone on desktop + mobile, top-10 button unaffected, no overflow.
+
+- OWNER: "GET A QUOTE" NOW ACCOUNT-GATED (2026-09-10) — "change all get a quote tabs to a
+  popup to create an account or sign in rather than leading to WhatsApp; prompt to create
+  an account to chat and request a quote". DONE: new shared QuoteCta component — clicking
+  any Get a quote button: logged-out → shadcn popup "Request your quote / Create an account
+  or sign in to chat with us and request your quote — messages, quotes and updates all stay
+  in one place" with Sign in + Create account (deep-links to /login and /login?mode=register);
+  logged-in → straight to their portal (/account, admins /admin) where the chat + quote
+  request live. NO WhatsApp in this flow. Swapped on: homepage nav (nav-quote-button),
+  Hero CTA (hero-cta-quote-button), visualiser header, favourites leaderboard header —
+  stale waLink imports removed. Floating WhatsApp button + Contact page still WhatsApp.
+  TESTED in browser: all four buttons open the popup logged out (create-account deep link
+  lands on register), logged-in click goes straight to /account, no overflow. NOTE: the
+  Contact page "Quick quote" WhatsApp form was kept (it's a form, not a Get-a-quote tab) —
+  flagged to the owner.

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { motion, useScroll, useTransform, useMotionValue, useMotionTemplate } from "framer-motion";
-import { waLink } from "@/constants/site";
+import QuoteCta from "@/components/QuoteCta";
 import { MaskedLines } from "@/components/Reveal";
 import { scrollToHash } from "@/components/Nav";
 
@@ -90,17 +90,12 @@ export default function Hero() {
                         transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 1.15 }}
                         className="mt-10 flex flex-wrap items-center gap-4"
                     >
-                        <a
-                            href={waLink(
-                                "Hi TMN Decorating & Maintenance — I'd like a quote for a project."
-                            )}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            data-testid="hero-cta-quote-button"
+                        <QuoteCta
+                            testid="hero-cta-quote-button"
                             className="rounded-full bg-ink px-7 py-4 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-paper transition-transform duration-300 hover:scale-[1.05] active:scale-95"
                         >
                             Get a quote
-                        </a>
+                        </QuoteCta>
                         <a
                             href="#work"
                             data-testid="hero-cta-work-button"
