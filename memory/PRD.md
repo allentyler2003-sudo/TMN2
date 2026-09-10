@@ -230,5 +230,33 @@ as a general background with scroll animations. Iterated direction (latest wins)
   verified: ground+door excluded by detect, erased stripe = 0 with wall intact, recolour
   respects the erasure.
 
+- DETECTION ROOT-CAUSE FIX — "wrong again, only the white walls" (user msg 565) + AI chat
+  unresponsiveness (same msg). ROOT CAUSES FOUND: (1) detectWallMask had a hidden BLANKET
+  FALLBACK that painted the top 45% of the photo as walls whenever detection failed —
+  this covered doors/windows/ground and was the real villain behind msgs 538 & 565;
+  (2) the sky-block walk (tolerance 30) leaked through blurred sky/wall boundaries into
+  white walls, eating the wall and blocking all seeds → detection "failed" → fallback
+  fired. FIXES (colour.js): sky walk now requires sky-plausible pixels (blue >= red - 2 —
+  pale skies always lean blue, warm white walls never do) with tolerance 24; blanket
+  fallback REMOVED (returns null → ColourStudio shows "Couldn't spot the walls
+  automatically — brush over them instead" with zero wrong pixels); dead isSky function
+  deleted. VERIFIED with a NEW Node regression harness /app/scripts/test_wall_detect.mjs
+  that runs the REAL algorithm in Node (canvas stubbed) — 4/4 scenarios pass: house
+  exterior (sky 0% / wall 85% / door 0% / ground 0%), interior (wall 99% / floor 0%),
+  ambiguous all-white (graceful null), harsh gradient+speckles+door (sky 0% / wall 60% /
+  door 0% / ground 0%; wall partial on extreme gradients is the accepted trade-off —
+  brushable). AI chat: backend verified healthy via external curl (real streamed answer,
+  ~6-10s; typing indicator + disabled send button confirmed working in UI by testing
+  agent — 102-char answer streamed, no fix needed). Testing agent iteration_3: 100%
+  backend + frontend — detect flow with quantitative pixel analysis on desktop+mobile,
+  graceful-failure path, chat E2E, homepage/admin/account regressions all PASS.
+
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.
+- P1: If the user's real photo still misbehaves (option B chosen): tune
+  /app/scripts/test_wall_detect.mjs scenario values against THEIR photo via the Node
+  harness, then port thresholds to colour.js (harness prints per-region coverage %).
+- P2 (refactor, outstanding since iteration_2): split ColourStudio.jsx (~1051 lines)
+  into BeforeAfter / ColourWheel / saved-looks components.
+- P2: silence pre-existing /api/auth/me 401 console noise on public pages.
+- P1: live Stripe keys (currently sandbox).

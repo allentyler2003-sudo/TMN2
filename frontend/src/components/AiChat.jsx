@@ -164,8 +164,8 @@ export default function AiChat() {
                                 </div>
                             ))}
                             {streaming && (
-                                <p className="font-mono text-[9px] uppercase tracking-[0.25em] text-ink/40">
-                                    TMN Assistant is typing…
+                                <p data-testid="ai-chat-waiting" className="font-mono text-[9px] uppercase tracking-[0.25em] text-ink/40">
+                                    TMN Assistant is typing… can take up to a minute
                                 </p>
                             )}
                         </div>

@@ -1,0 +1,24 @@
+{
+  "summary": "Both reported bugs are FIXED and verified end-to-end. (1) Visualiser wall detection: on a synthetic house image (pale-blue sky / white walls / brown door / grey ground) the red overlay covers 36.19% of the mid wall zone with 0.33% bleed into sky and 0.00% into the door/ground regions — the sky-walk plausibility guard and the removal of the top-45% blanket fallback are working. Recolour with Dark royal blue (#1F3A93) produces the expected result: sky pixel RGB unchanged [180,210,236], door unchanged [110,70,45], ground unchanged [120,120,120], wall shifted to blue [160,199,230]. Mobile 390x844 screenshot visually confirms sky/door/ground preserved, walls painted deep royal blue. (2) Graceful failure: uploading a near-uniform white image now yields the friendly message 'Couldn't spot the walls automatically — brush over them instead.' with ZERO red pixels drawn on the canvas (no blanket top-half overlay). (3) AI chat streams a real answer end-to-end: typing indicator [data-testid=ai-chat-waiting] appears immediately, send button is disabled while streaming, a 102-char answer streamed in within ~10s ('A good sheen for a kitchen is typically matte…'). Backend curl confirms /api/ai/chat SSE completes in 9.9s. (4) Regression: homepage hero 'Prepared.Painted.Protected.' renders, WhatsApp button present; admin login (admin@tmndecorating.co.uk / TMN-Admin-2026!) reaches /admin, customer login (customer@test.co.uk / password123) reaches /account. Only console noise is pre-existing 401 from /api/auth/me probes on unauth pages — noted in iteration_2 already.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ColourStudio.jsx is 1051 lines (>700 guideline) — split BeforeAfter, ColourWheel, saved-looks gallery into own files. Same recommendation as iteration_2, still outstanding.",
+    "AiChat.jsx: on a non-2xx response the code awaits res.json() which will throw if the body is an SSE/text stream; the try/catch handles it but consider a text-first fallback for clearer error messages.",
+    "AiChat.jsx renderBold does not sanitise other markdown (lists, code) — fine for MVP but worth noting if answer quality improves.",
+    "Two /api/auth/me 401s per page load still appear as red console errors on public pages — non-blocking noise; suppress by treating unauth as a silent probe or lower to fetch without credentials-check console error."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin@tmndecorating.co.uk / TMN-Admin-2026! ; customer@test.co.uk / password123 — both verified",
+  "seed_data_creation": "Created /tmp/test_house.jpg (800x600 synthetic house exterior: sky top / white walls / brown door / grey ground / two windows) and /tmp/test_uniform.jpg (800x600 solid #F5F5F5) for detection tests.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Wall detection fix verified with quantitative canvas pixel analysis (regions counted by y-coordinate bands and door bbox). If detection regresses in future, reuse the same PIL image + eval snippet that counts red pixels per zone. AI chat local Qwen model returns ~10s on a short prompt (backend curl confirms), UI streaming works. Pre-existing /api/auth/me 401 noise on public pages is expected."
+}
