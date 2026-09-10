@@ -1,8 +1,10 @@
 import { Component, useEffect, useRef, useState } from "react";
 import Lenis from "lenis";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import axios from "axios";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import "@/App.css";
+import HoloBackground from "@/components/HoloBackground";
 import Cursor from "@/components/Cursor";
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
@@ -43,64 +45,25 @@ class ErrorBoundary extends Component {
     }
 }
 
-function HoloBackground() {
-    const videoRef = useRef(null);
-    const [dead, setDead] = useState(false);
-
+function PageTracker() {
+    const { pathname } = useLocation();
     useEffect(() => {
-        const v = videoRef.current;
-        if (!v) return;
-        const tryPlay = () => {
-            if (v.paused) v.play().catch(() => {});
-        };
-        const onCanPlay = () => {
-            if (v.readyState >= 2) setDead(false);
-            tryPlay();
-        };
-        const onError = () => setDead(true);
-        const kick = () => tryPlay();
-        v.addEventListener("canplay", onCanPlay);
-        v.addEventListener("error", onError, true);
-        window.addEventListener("pointerdown", kick, { passive: true });
-        window.addEventListener("wheel", kick, { passive: true });
-        window.addEventListener("touchstart", kick, { passive: true });
-        const probe = setInterval(() => {
-            if (v.readyState === 0 && v.networkState === 3) setDead(true);
-            else tryPlay();
-        }, 3000);
-        tryPlay();
-        return () => {
-            v.removeEventListener("canplay", onCanPlay);
-            v.removeEventListener("error", onError, true);
-            window.removeEventListener("pointerdown", kick);
-            window.removeEventListener("wheel", kick);
-            window.removeEventListener("touchstart", kick);
-            clearInterval(probe);
-        };
-    }, []);
-
-    return (
-        <div
-            className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
-            aria-hidden="true"
-        >
-            {dead && <div className="holo-fallback absolute inset-0" />}
-            <video
-                ref={videoRef}
-                data-testid="holo-background-video"
-                className="h-full w-full object-cover saturate-[1.25] contrast-[1.05]"
-                muted
-                loop
-                playsInline
-                preload="auto"
-                poster="/videos/bg-poster.jpg"
-            >
-                <source src="/videos/bg-hq.webm" type="video/webm" />
-                <source src="/videos/bg-hq.mp4" type="video/mp4" />
-            </video>
-            <div className="absolute inset-0 bg-paper/55" />
-        </div>
-    );
+        let vid = localStorage.getItem("tmn-vid");
+        if (!vid) {
+            vid = crypto.randomUUID
+                ? crypto.randomUUID()
+                : "v-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+            localStorage.setItem("tmn-vid", vid);
+        }
+        axios
+            .post(
+                `${process.env.REACT_APP_BACKEND_URL}/api/track/view`,
+                { visitor_id: vid, path: pathname },
+                { timeout: 8000 }
+            )
+            .catch(() => {});
+    }, [pathname]);
+    return null;
 }
 
 function ScrollToTop() {
@@ -175,6 +138,7 @@ function App() {
             <AuthProvider>
                 <BrowserRouter>
                     <ScrollToTop />
+                    <PageTracker />
                     <Routes>
                         <Route path="/" element={<Site />} />
                         <Route path="/visualiser" element={<Visualiser />} />

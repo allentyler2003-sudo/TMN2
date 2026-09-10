@@ -4,7 +4,7 @@ import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
 import {
     ChevronsLeftRight, Download, Layers, Mail, Paintbrush, RefreshCw, Share2, Sparkles,
-    Upload, Wand2, Undo2, Eraser, Bookmark, Trash2, X, MousePointerClick, Pipette,
+    Upload, Wand2, Undo2, Eraser, Bookmark, Trash2, X, MousePointerClick, Pipette, Heart,
 } from "lucide-react";
 import { waLink } from "@/constants/site";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -246,6 +246,8 @@ export default function ColourStudio() {
     const [plateBusy, setPlateBusy] = useState(false);
     const [plateFlash, setPlateFlash] = useState("");
     const [showSignin, setShowSignin] = useState(false);
+    const [signinReason, setSigninReason] = useState("plate");
+    const [favs, setFavs] = useState([]);
     const fileRef = useRef(null);
     const canvasRef = useRef(null);
     const imgRef = useRef(null);
@@ -261,10 +263,14 @@ export default function ColourStudio() {
     useEffect(() => {
         if (!userEmail) {
             setPlate([]);
+            setFavs([]);
             return;
         }
         axios.get(`${API_BASE}/colours`, { withCredentials: true })
             .then(({ data }) => setPlate(data))
+            .catch(() => {});
+        axios.get(`${API_BASE}/favourites`, { withCredentials: true })
+            .then(({ data }) => setFavs(data))
             .catch(() => {});
     }, [userEmail]);
 
@@ -504,7 +510,7 @@ export default function ColourStudio() {
         try {
             const { data } = await axios.post(
                 `${API_BASE}/colours`,
-                { name: layerColours[activeLayer].name, hex: customHex },
+                { name: layerColours[activeLayer].name, hex: activeHex },
                 { withCredentials: true, timeout: 30000 }
             );
             setPlate((p) => [data, ...p]);
@@ -521,6 +527,45 @@ export default function ColourStudio() {
         try {
             await axios.delete(`${API_BASE}/colours/${id}`, { withCredentials: true });
             setPlate((p) => p.filter((c) => c.id !== id));
+        } catch {
+            /* already gone */
+        }
+    };
+
+    /* ---------- favourites: heart the colour you love ---------- */
+    const activeHex = normaliseHex(layerColours[activeLayer].hex);
+    const favNow = favs.find((f) => f.hex === activeHex);
+
+    const toggleFavourite = async () => {
+        if (!user) {
+            setSigninReason("favourites");
+            setShowSignin(true);
+            return;
+        }
+        try {
+            if (favNow) {
+                await axios.delete(`${API_BASE}/favourites/${favNow.id}`, { withCredentials: true });
+                setFavs((f) => f.filter((x) => x.id !== favNow.id));
+            } else {
+                const { data } = await axios.post(
+                    `${API_BASE}/favourites`,
+                    { name: layerColours[activeLayer].name, hex: activeHex, code: layerColours[activeLayer].code || "" },
+                    { withCredentials: true }
+                );
+                setFavs((f) => [data, ...f]);
+                setPlateFlash("Added to your favourites ♥");
+                setTimeout(() => setPlateFlash(""), 3000);
+            }
+        } catch (err) {
+            setPlateFlash(err.response?.data?.detail || "Couldn't update favourites — please try again.");
+            setTimeout(() => setPlateFlash(""), 3000);
+        }
+    };
+
+    const removeFavourite = async (id) => {
+        try {
+            await axios.delete(`${API_BASE}/favourites/${id}`, { withCredentials: true });
+            setFavs((f) => f.filter((x) => x.id !== id));
         } catch {
             /* already gone */
         }
@@ -877,7 +922,11 @@ export default function ColourStudio() {
                                                     <button
                                                         key={s.name}
                                                         data-testid={`colour-swatch-${s.name.toLowerCase().replace(/[^a-z]+/g, "-")}`}
-                                                        onClick={() => setLayerColours((c) => ({ ...c, [activeLayer]: s }))}
+                                                        onClick={() => {
+                                                            setLayerColours((c) => ({ ...c, [activeLayer]: s }));
+                                                            setCustomHex(s.hex);
+                                                            setHexInput(s.hex);
+                                                        }}
                                                         title={`${s.name}${s.code ? " · " + s.code : ""}`}
                                                         className={`h-10 w-10 rounded-full border-2 transition-transform duration-200 hover:scale-110 ${
                                                             active ? "scale-110 border-ink ring-2 ring-ink/30" : "border-ink/15"
@@ -889,11 +938,26 @@ export default function ColourStudio() {
                                                 );
                                             })}
                                         </div>
-                                        <p className="mt-2 text-sm font-bold uppercase tracking-wide text-ink/75" data-testid="colour-active-name">
-                                            {activeColour.name}
-                                            {activeColour.code ? <span className="ml-2 font-mono text-[10px] font-medium text-ink/50">{activeColour.code}</span> : null}
-                                            <span className="ml-2 font-mono text-[10px] font-medium text-ink/50" data-testid="colour-active-hex">{activeColour.hex.toUpperCase()}</span>
-                                        </p>
+                                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                                            <p className="text-sm font-bold uppercase tracking-wide text-ink/75" data-testid="colour-active-name">
+                                                {activeColour.name}
+                                                {activeColour.code ? <span className="ml-2 font-mono text-[10px] font-medium text-ink/50">{activeColour.code}</span> : null}
+                                                <span className="ml-2 font-mono text-[10px] font-medium text-ink/50" data-testid="colour-active-hex">{activeColour.hex.toUpperCase()}</span>
+                                            </p>
+                                            <button
+                                                data-testid="colour-favourite-toggle"
+                                                onClick={toggleFavourite}
+                                                title={favNow ? "Remove from favourites" : "Add to favourites"}
+                                                className={`ml-auto inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors ${
+                                                    favNow
+                                                        ? "border-[#C6A55C] bg-[#C6A55C]/15 text-ink"
+                                                        : "border-ink/25 text-ink/60 hover:border-ink hover:text-ink"
+                                                }`}
+                                            >
+                                                <Heart className={`h-3.5 w-3.5 ${favNow ? "fill-[#C6A55C] text-[#C6A55C]" : ""}`} />
+                                                {favNow ? "Favourited" : "Favourite"}
+                                            </button>
+                                        </div>
                                         <p className="mt-1 text-[11px] font-medium text-ink/45">
                                             Brand colours are close digital matches — always order a
                                             sample pot before committing.
@@ -1056,6 +1120,36 @@ export default function ColourStudio() {
                                                         ? "Colours you save appear here on every visit."
                                                         : "Sign in to keep your custom colours on your plate."}
                                                 </p>
+                                            )}
+                                            {favs.length > 0 && (
+                                                <div className="mt-3 border-t border-ink/10 pt-3" data-testid="colour-favourites-row">
+                                                    <p className="font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/55">
+                                                        Your favourites
+                                                    </p>
+                                                    <div className="mt-2 flex flex-wrap gap-3">
+                                                        {favs.map((f, i) => (
+                                                            <div key={f.id} className="group relative">
+                                                                <button
+                                                                    data-testid={`colour-fav-swatch-${i}`}
+                                                                    onClick={() => applyCustomHex(f.hex, f.name)}
+                                                                    title={`${f.name} ${f.hex}`}
+                                                                    className="h-9 w-9 rounded-full shadow-md ring-2 ring-white transition-transform hover:scale-110"
+                                                                    style={{ backgroundColor: f.hex }}
+                                                                >
+                                                                    <span className="sr-only">{f.name}</span>
+                                                                </button>
+                                                                <button
+                                                                    data-testid={`colour-fav-delete-${i}`}
+                                                                    onClick={() => removeFavourite(f.id)}
+                                                                    title={`Remove ${f.name} from favourites`}
+                                                                    className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-ink font-mono text-[8px] font-bold text-paper opacity-0 transition-opacity group-hover:opacity-100"
+                                                                >
+                                                                    <X className="h-2.5 w-2.5" />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             )}
                                             {plateFlash && (
                                                 <p className="mt-2 text-xs font-medium text-ink/70" data-testid="colour-plate-flash">
@@ -1348,11 +1442,12 @@ export default function ColourStudio() {
                 <DialogContent className="rounded-2xl border-ink/10 bg-paper text-ink sm:max-w-md" data-testid="colour-signin-popup">
                     <DialogHeader>
                         <DialogTitle className="font-display text-xl font-bold uppercase tracking-tight text-ink">
-                            Save it to your colour plate
+                            {signinReason === "favourites" ? "Save the colours you love" : "Save it to your colour plate"}
                         </DialogTitle>
                         <DialogDescription className="text-sm font-medium leading-relaxed text-ink/60">
-                            You can only save custom upload colours to your colour plate. Sign in or
-                            create an account to keep them — they&#39;ll be here every time you visit.
+                            {signinReason === "favourites"
+                                ? "Sign in or create an account to keep the colours you favourite — they'll be here every time you visit."
+                                : "You can only save custom upload colours to your colour plate. Sign in or create an account to keep them — they'll be here every time you visit."}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="flex-row gap-2 sm:justify-start">

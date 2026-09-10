@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Check, Pencil, X } from "lucide-react";
+import { Check, Pencil, Pin, X } from "lucide-react";
 import { API_BASE, formatApiError, useAuth } from "@/context/AuthContext";
 import ChatTab from "@/components/admin/ChatTab";
 import JobsTab from "@/components/admin/JobsTab";
 import NotesTab from "@/components/admin/NotesTab";
 import InvoicesTab from "@/components/admin/InvoicesTab";
 import ClientsView from "@/components/admin/ClientsView";
+import StatsView from "@/components/admin/StatsView";
 
 const TABS = ["Chat", "Jobs", "Notes", "Invoices"];
 
@@ -20,6 +21,7 @@ export default function Admin() {
     const [error, setError] = useState("");
     const [editingName, setEditingName] = useState(false);
     const [nameDraft, setNameDraft] = useState("");
+    const [favourites, setFavourites] = useState(null);
 
     const loadCustomers = async () => {
         try {
@@ -44,17 +46,47 @@ export default function Admin() {
         }
     };
 
+    const loadFavourites = async () => {
+        try {
+            const { data } = await axios.get(`${API_BASE}/admin/favourites`, {
+                withCredentials: true,
+            });
+            setFavourites(data);
+        } catch {
+            /* non-blocking */
+        }
+    };
+
     useEffect(() => {
         loadCustomers();
         loadStats();
+        loadFavourites();
         const id = setInterval(() => {
             loadCustomers();
             loadStats();
+            loadFavourites();
         }, 4000);
         return () => clearInterval(id);
     }, []);
 
     const active = customers.find((c) => c.id === activeId);
+
+    const togglePin = async (c) => {
+        try {
+            const { data } = await axios.post(
+                `${API_BASE}/admin/customers/${c.id}/pin`,
+                {},
+                { withCredentials: true }
+            );
+            setCustomers((cs) =>
+                cs
+                    .map((x) => (x.id === c.id ? { ...x, pinned: data.pinned } : x))
+                    .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
+            );
+        } catch (err) {
+            setError(formatApiError(err.response?.data?.detail));
+        }
+    };
 
     const renameCustomer = async () => {
         const name = nameDraft.trim();
@@ -96,6 +128,17 @@ export default function Admin() {
                                 Inbox
                             </button>
                             <button
+                                data-testid="admin-view-stats"
+                                onClick={() => setView("stats")}
+                                className={`rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] transition-all duration-300 ${
+                                    view === "stats"
+                                        ? "bg-ink text-paper"
+                                        : "border border-ink/25 text-ink/70 hover:border-ink hover:text-ink"
+                                }`}
+                            >
+                                Stats
+                            </button>
+                            <button
                                 data-testid="admin-view-records"
                                 onClick={() => setView("records")}
                                 className={`rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] transition-all duration-300 ${
@@ -119,7 +162,9 @@ export default function Admin() {
             </header>
 
             <main className="mx-auto max-w-[1500px] px-5 py-10 sm:px-8 lg:py-14">
-                {view === "records" ? (
+                {view === "stats" ? (
+                    <StatsView stats={stats} favourites={favourites} />
+                ) : view === "records" ? (
                     <>
                         <div className="mb-8">
                             <p className="font-mono text-[10px] font-medium uppercase tracking-[0.3em] text-ink/60">
@@ -166,28 +211,61 @@ export default function Admin() {
                                     </p>
                                 )}
                                 {customers.map((c) => (
-                                    <button
+                                    <div
                                         key={c.id}
+                                        role="button"
+                                        tabIndex={0}
                                         data-testid={`admin-customer-item-${c.email}`}
                                         onClick={() => setActiveId(c.id)}
-                                        className={`w-full rounded-2xl border p-4 text-left transition-colors duration-300 ${
+                                        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setActiveId(c.id)}
+                                        className={`w-full cursor-pointer rounded-2xl border p-4 text-left transition-colors duration-300 ${
                                             activeId === c.id
                                                 ? "border-ink bg-white shadow-[0_10px_30px_rgba(10,10,10,0.08)]"
                                                 : "border-transparent hover:border-ink/20"
-                                        }`}
+                                        } ${c.pinned ? "ring-1 ring-[#C6A55C]/60" : ""}`}
                                     >
                                         <div className="flex items-center justify-between gap-3">
-                                            <span className="font-display text-base font-bold uppercase tracking-tight">
-                                                {c.name}
-                                            </span>
-                                            {c.unread > 0 && (
-                                                <span
-                                                    data-testid={`admin-unread-badge-${c.email}`}
-                                                    className="rounded-full bg-ink px-2.5 py-1 font-mono text-[9px] font-bold text-paper"
-                                                >
-                                                    {c.unread} new
+                                            <div className="flex min-w-0 items-center gap-2">
+                                                {c.pinned && (
+                                                    <Pin
+                                                        data-testid={`admin-pin-badge-${c.email}`}
+                                                        className="h-3.5 w-3.5 shrink-0 fill-[#C6A55C] text-[#C6A55C]"
+                                                    />
+                                                )}
+                                                <span className="font-display text-base font-bold uppercase tracking-tight">
+                                                    {c.name}
                                                 </span>
-                                            )}
+                                                {c.pinned && (
+                                                    <span className="hidden shrink-0 rounded-full bg-[#C6A55C]/15 px-2 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.15em] text-ink/70 sm:inline">
+                                                        Priority
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex shrink-0 items-center gap-2">
+                                                {c.unread > 0 && (
+                                                    <span
+                                                        data-testid={`admin-unread-badge-${c.email}`}
+                                                        className="rounded-full bg-ink px-2.5 py-1 font-mono text-[9px] font-bold text-paper"
+                                                    >
+                                                        {c.unread} new
+                                                    </span>
+                                                )}
+                                                <button
+                                                    data-testid={`admin-pin-${c.email}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        togglePin(c);
+                                                    }}
+                                                    title={c.pinned ? "Remove from priority list" : "Pin to priority list"}
+                                                    className={`rounded-full border p-1.5 transition-colors ${
+                                                        c.pinned
+                                                            ? "border-[#C6A55C] bg-[#C6A55C]/15 hover:bg-[#C6A55C]/25"
+                                                            : "border-ink/20 hover:border-ink"
+                                                    }`}
+                                                >
+                                                    <Pin className={`h-3.5 w-3.5 ${c.pinned ? "fill-[#C6A55C] text-[#C6A55C]" : "text-ink/50"}`} />
+                                                </button>
+                                            </div>
                                         </div>
                                         <p className="mt-0.5 text-xs font-medium text-ink/55">{c.email}</p>
                                         <p className="mt-2 truncate text-xs font-medium text-ink/70">
@@ -195,7 +273,7 @@ export default function Admin() {
                                                 ? `${c.last_message.sender === "customer" ? "Them" : "You"}: ${c.last_message.text}`
                                                 : "No messages yet"}
                                         </p>
-                                    </button>
+                                    </div>
                                 ))}
                             </div>
 

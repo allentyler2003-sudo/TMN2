@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import ColourStudio from "@/components/ColourStudio";
+import HoloBackground from "@/components/HoloBackground";
 import { waLink } from "@/constants/site";
 
 export default function Visualiser() {
     return (
-        <div className="relative z-10 min-h-screen bg-paper">
+        <div className="relative z-10 min-h-screen">
+            <HoloBackground />
             <header className="sticky top-0 z-40 border-b border-ink/10 bg-paper/85 backdrop-blur-md">
                 <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-2 px-3 py-3 sm:gap-4 sm:px-8 lg:px-12">
                     <Link

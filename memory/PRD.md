@@ -385,3 +385,27 @@ as a general background with scroll animations. Iterated direction (latest wins)
   (#9BAD87 on sage), corner tap PASS (#1F3A93 exact), average PASS, popup wording PASS,
   register deep-link PASS, login→plate loads/swatch applies/save/persist-reload/delete
   all PASS, no overflow either viewport.
+
+- OWNER: ADMIN STATS TAB + CLIENT COLOUR FAVOURITES + PRIORITY CLIENTS + HOLO ON VISUALISER
+  (2026-09-10) — "admin option tab for site views + customer account quantity; clients can
+  favourite colours (admin favourites list); admin can pin a client / priority clients list;
+  Test Your Colours page gets the home page's animated holo background". DONE:
+  (1) VIEW TRACKING: POST /api/track/view (public) — anonymous visitorId in localStorage,
+  daily site_views doc ($inc views, $addToSet visitors); PageTracker in App.js fires on
+  every route change. (2) /api/admin/stats extended: views_total, views_today, views_7d,
+  visitors_7d, customers_new_7d + existing customers/messages/unread. New admin "Stats"
+  view (StatsView.jsx): six stat cards + "Clients' favourite colours" panel (hex, name,
+  ♥ count, client emails, sorted most-loved first). (3) FAVOURITES: heart button beside the
+  active colour (any source: swatch/wheel/code/photo match), POST/GET/DELETE /api/favourites
+  (auth, dup-hex-safe, 60 cap); "Your favourites" row applies hearted colours on tap;
+  logged-out heart → sign-in popup (favourites wording variant). FIX: brand swatch clicks
+  now sync customHex/hexInput, and the heart + plate save read the ACTIVE wall colour —
+  was saving stale wheel hex under the swatch's name. (4) PRIORITY CLIENTS: POST
+  /api/admin/customers/{id}/pin toggles pinned; admin customers list returns pinned flag +
+  pinned-first sort; inbox rows have a gold pin toggle + PRIORITY badge, pinned float top.
+  (5) HOLO: HoloBackground extracted to components/HoloBackground.jsx (video + CSS fallback
+  + paper tint); rendered on /visualiser (bg-paper removed) — home unchanged.
+  TESTED: curl — tracking ✓, extended stats ✓, favourites CRUD + admin aggregate ✓, pin
+  toggle + sort ✓; browser desktop+mobile — holo renders on visualiser ✓, heart add/remove
+  + persistence ✓, admin stats cards ✓, favourites row correct (Sage green #9CAF88 +
+  client email) ✓, pin → PRIORITY badge + floats first ✓, no overflow.

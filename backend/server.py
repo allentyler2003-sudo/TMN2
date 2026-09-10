@@ -404,6 +404,111 @@ async def delete_colour(colour_id: str, user: dict = Depends(get_current_user)):
     return {"ok": True}
 
 
+# ---------- colour favourites (clients' loved colours) ----------
+
+class FavouriteInput(BaseModel):
+    name: str = Field(default="", max_length=60)
+    hex: str = Field(min_length=3, max_length=7)
+    code: str = Field(default="", max_length=30)
+
+
+def favourite_public(doc: dict) -> dict:
+    return {
+        "id": str(doc["_id"]),
+        "name": doc["name"],
+        "hex": doc["hex"],
+        "code": doc.get("code", ""),
+        "created_at": doc.get("created_at"),
+    }
+
+
+@api_router.get("/favourites")
+async def get_favourites(user: dict = Depends(get_current_user)):
+    docs = await db.favourite_colours.find({"user_id": str(user["_id"])}).sort("created_at", -1).to_list(60)
+    return [favourite_public(d) for d in docs]
+
+
+@api_router.post("/favourites")
+async def add_favourite(input: FavouriteInput, user: dict = Depends(get_current_user)):
+    hexv = normalise_hex_str(input.hex)
+    existing = await db.favourite_colours.find_one({"user_id": str(user["_id"]), "hex": hexv})
+    if existing:
+        return favourite_public(existing)
+    count = await db.favourite_colours.count_documents({"user_id": str(user["_id"])})
+    if count >= 60:
+        raise HTTPException(status_code=400, detail="Your favourites list is full (60) — remove one first")
+    doc = {
+        "user_id": str(user["_id"]),
+        "user_email": user.get("email", ""),
+        "name": (input.name.strip() or "Favourite colour")[:60],
+        "hex": hexv,
+        "code": (input.code or "").strip()[:30],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = await db.favourite_colours.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return favourite_public(doc)
+
+
+@api_router.delete("/favourites/{favourite_id}")
+async def delete_favourite(favourite_id: str, user: dict = Depends(get_current_user)):
+    from bson import ObjectId
+
+    try:
+        oid = ObjectId(favourite_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Favourite not found")
+    result = await db.favourite_colours.delete_one({"_id": oid, "user_id": str(user["_id"])})
+    if not result.deleted_count:
+        raise HTTPException(status_code=404, detail="Favourite not found")
+    return {"ok": True}
+
+
+@api_router.get("/admin/favourites")
+async def admin_favourites(admin: dict = Depends(require_admin)):
+    docs = await db.favourite_colours.find({}).sort("created_at", -1).to_list(2000)
+    agg = {}
+    for d in docs:
+        entry = agg.setdefault(
+            d["hex"],
+            {"hex": d["hex"], "names": {}, "clients": [], "count": 0},
+        )
+        entry["count"] += 1
+        entry["names"][d["name"]] = entry["names"].get(d["name"], 0) + 1
+        email = d.get("user_email", "")
+        if email and email not in entry["clients"]:
+            entry["clients"].append(email)
+    out = []
+    for entry in agg.values():
+        best_name = max(entry["names"], key=lambda n: entry["names"][n]) if entry["names"] else "Favourite colour"
+        out.append({
+            "hex": entry["hex"],
+            "name": best_name,
+            "count": entry["count"],
+            "clients": entry["clients"],
+        })
+    out.sort(key=lambda x: -x["count"])
+    return out
+
+
+# ---------- site view tracking (anonymous, one doc per day) ----------
+
+class ViewInput(BaseModel):
+    visitor_id: str = Field(min_length=6, max_length=64)
+    path: str = Field(default="/", max_length=200)
+
+
+@api_router.post("/track/view")
+async def track_view(input: ViewInput):
+    day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    await db.site_views.update_one(
+        {"day": day},
+        {"$inc": {"views": 1}, "$addToSet": {"visitors": input.visitor_id}},
+        upsert=True,
+    )
+    return {"ok": True}
+
+
 @api_router.post("/looks/{look_id}/send")
 async def send_look(look_id: str, user: dict = Depends(get_current_user)):
     from bson import ObjectId
@@ -453,8 +558,27 @@ async def admin_customers(admin: dict = Depends(require_admin)):
             "last_message": msg_public(last[0]) if last else None,
             "unread": unread,
             "total_messages": total,
+            "pinned": bool(c.get("pinned", False)),
         })
+    # priority (pinned) clients float to the top, newest first within each group
+    out.sort(key=lambda x: not x["pinned"])
     return out
+
+
+@api_router.post("/admin/customers/{customer_id}/pin")
+async def admin_pin_customer(customer_id: str, admin: dict = Depends(require_admin)):
+    from bson import ObjectId
+
+    try:
+        oid = ObjectId(customer_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Customer not found")
+    c = await db.users.find_one({"_id": oid, "role": "customer"})
+    if not c:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    pinned = not c.get("pinned", False)
+    await db.users.update_one({"_id": oid}, {"$set": {"pinned": pinned}})
+    return {"pinned": pinned}
 
 
 @api_router.get("/admin/messages")
@@ -480,10 +604,25 @@ async def admin_reply(input: AdminReplyInput, admin: dict = Depends(require_admi
 
 @api_router.get("/admin/stats")
 async def admin_stats(admin: dict = Depends(require_admin)):
+    now = datetime.now(timezone.utc)
+    days_7 = [(now - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7)]
+    recent = await db.site_views.find({"day": {"$in": days_7}}).to_list(10)
+    views_7d = sum(d.get("views", 0) for d in recent)
+    views_today = next((d.get("views", 0) for d in recent if d["day"] == days_7[0]), 0)
+    visitors_7d = len({v for d in recent for v in d.get("visitors", [])})
+    total_row = await db.site_views.aggregate([{"$group": {"_id": None, "views": {"$sum": "$views"}}}]).to_list(1)
+    week_ago_iso = (now - timedelta(days=7)).isoformat()
     return {
         "customers": await db.users.count_documents({"role": "customer"}),
+        "customers_new_7d": await db.users.count_documents(
+            {"role": "customer", "created_at": {"$gte": week_ago_iso}}
+        ),
         "messages": await db.messages.count_documents({}),
         "unread": await db.messages.count_documents({"sender": "customer", "read_by_admin": False}),
+        "views_total": total_row[0]["views"] if total_row else 0,
+        "views_today": views_today,
+        "views_7d": views_7d,
+        "visitors_7d": visitors_7d,
     }
 
 
