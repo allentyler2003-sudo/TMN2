@@ -216,6 +216,7 @@ export default function ColourStudio() {
     const { user } = useAuth();
     const [image, setImage] = useState(null);
     const [brushSize, setBrushSize] = useState(26);
+    const [eraseMode, setEraseMode] = useState(false);
     const [brand, setBrand] = useState("popular");
     const [activeLayer, setActiveLayer] = useState("walls");
     const [layerColours, setLayerColours] = useState({
@@ -265,7 +266,9 @@ export default function ColourStudio() {
             ctx.lineCap = "round";
             ctx.lineJoin = "round";
             for (const stroke of strokesRef.current[kind]) {
-                ctx.lineWidth = Math.max(6, stroke.size * scale);
+                ctx.globalCompositeOperation = stroke.erase ? "destination-out" : "source-over";
+                ctx.strokeStyle = stroke.erase ? "rgba(0,0,0,1)" : col;
+                ctx.lineWidth = Math.max(6, stroke.size * scale) * (stroke.erase ? 1.4 : 1);
                 ctx.beginPath();
                 stroke.points.forEach((pt, i) => {
                     const x = pt.x * canvas.width;
@@ -278,6 +281,7 @@ export default function ColourStudio() {
                 }
                 ctx.stroke();
             }
+            ctx.globalCompositeOperation = "source-over";
         }
         setStrokes(strokesRef.current[activeLayer].length);
     };
@@ -295,7 +299,7 @@ export default function ColourStudio() {
         e.preventDefault();
         drawing.current = true;
         e.target.setPointerCapture?.(e.pointerId);
-        strokesRef.current[activeLayer].push({ size: brushSize, points: [getPos(e)] });
+        strokesRef.current[activeLayer].push({ size: brushSize, points: [getPos(e)], erase: eraseMode });
         redraw();
     };
 
@@ -646,9 +650,31 @@ export default function ColourStudio() {
                                     )}
 
                                     <div>
-                                        <p className="mb-3 flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/55">
-                                            <Paintbrush className="h-3.5 w-3.5" /> Brush size
-                                        </p>
+                                        <div className="mb-2 flex items-center justify-between gap-3">
+                                            <p className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/55">
+                                                <Paintbrush className="h-3.5 w-3.5" /> {eraseMode ? "Eraser" : "Brush"}
+                                            </p>
+                                            <div className="flex gap-1.5">
+                                                <button
+                                                    data-testid="colour-brush-mode-brush"
+                                                    onClick={() => setEraseMode(false)}
+                                                    className={`rounded-full px-3.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] transition-colors ${
+                                                        !eraseMode ? "bg-ink text-paper" : "border border-ink/25 text-ink/65 hover:border-ink hover:text-ink"
+                                                    }`}
+                                                >
+                                                    Brush
+                                                </button>
+                                                <button
+                                                    data-testid="colour-brush-mode-erase"
+                                                    onClick={() => setEraseMode(true)}
+                                                    className={`rounded-full px-3.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] transition-colors ${
+                                                        eraseMode ? "bg-ink text-paper" : "border border-ink/25 text-ink/65 hover:border-ink hover:text-ink"
+                                                    }`}
+                                                >
+                                                    Erase
+                                                </button>
+                                            </div>
+                                        </div>
                                         <input
                                             data-testid="colour-brush-size"
                                             type="range"

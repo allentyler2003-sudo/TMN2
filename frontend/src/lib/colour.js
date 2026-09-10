@@ -329,7 +329,7 @@ export function detectWallMask(img, kind = "walls") {
                     Math.abs(smooth[ni * 4] - smooth[seed * 4]) +
                     Math.abs(smooth[ni * 4 + 1] - smooth[seed * 4 + 1]) +
                     Math.abs(smooth[ni * 4 + 2] - smooth[seed * 4 + 2]);
-                if (localDiff < 36 || seedDiff < 60) {
+                if (localDiff < 26 || seedDiff < 50) {
                     local[ni] = 1;
                     q.push(ni);
                 }
@@ -340,6 +340,12 @@ export function detectWallMask(img, kind = "walls") {
         if (comp.length < minArea) continue;
         if (isSky(comp)) continue;
         if (!best || comp.length > best.length) best = comp;
+    }
+
+    if (best) {
+        // the bottom quarter of a photo is ground/flooring — never the walls
+        best = best.filter((p) => (p - (p % W)) / W < H * 0.78);
+        if (best.length < minArea) best = null;
     }
 
     if (best) {

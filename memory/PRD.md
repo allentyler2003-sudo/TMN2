@@ -222,5 +222,13 @@ as a general background with scroll animations. Iterated direction (latest wins)
   100% pass — mobile 390x844 cards visible with opacity 1 at load, upload→detect→swatch→
   generate flow works on mobile AND desktop, no overflow, homepage teaser + hero unaffected.
 
+- OVER-DETECTION FIX + ERASER (user: real exterior photo — door, window and ground got
+  covered): (1) gradient-walk tolerance tightened (local 36→26, seed 60→50) so the fill
+  stops at door/window/ground boundaries, (2) the bottom quarter of the photo is excluded
+  from the walls mask (ground/flooring never walls), (3) NEW Brush/Erase mode toggle —
+  erase strokes (destination-out, 1.4x wider) wipe any over-detected area per layer;
+  verified: ground+door excluded by detect, erased stripe = 0 with wall intact, recolour
+  respects the erasure.
+
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.
