@@ -103,8 +103,8 @@ export default function Nav() {
                     >
                         Reviews
                     </Link>
-                    <a
-                        href={accountHref}
+                    <Link
+                        to={accountHref}
                         data-testid={user ? "nav-account-link" : "nav-login-link"}
                         className="whitespace-nowrap rounded-full border border-ink/35 px-3.5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-ink transition-colors duration-300 hover:border-ink hover:bg-ink hover:text-paper sm:px-5"
                     >
@@ -113,7 +113,7 @@ export default function Nav() {
                                 ? "Admin"
                                 : "My account"
                             : "Log in"}
-                    </a>
+                    </Link>
                     <QuoteCta
                         testid="nav-quote-button"
                         className="group flex items-center gap-2 whitespace-nowrap rounded-full bg-ink px-4 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-paper transition-transform duration-300 hover:scale-[1.04] active:scale-95 sm:px-5 sm:text-[11px]"

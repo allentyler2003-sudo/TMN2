@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { formatApiError, useAuth } from "@/context/AuthContext";
 import { EASE } from "@/components/Reveal";
 
@@ -24,7 +24,7 @@ export default function Login() {
                 mode === "login"
                     ? await login(email, password)
                     : await register(name, email, password);
-            navigate(user.role === "admin" ? "/admin" : "/account");
+            navigate(user.role === "admin" ? "/admin" : "/");
         } catch (err) {
             setError(formatApiError(err.response?.data?.detail));
         } finally {
@@ -62,13 +62,13 @@ export default function Login() {
                     transition={{ duration: 0.8, ease: EASE }}
                     className="w-full max-w-md"
                 >
-                    <a
-                        href="/"
+                    <Link
+                        to="/"
                         data-testid="login-back-link"
                         className="font-mono text-[10px] font-medium uppercase tracking-[0.3em] text-ink/50 hover:text-ink"
                     >
                         ← Back to site
-                    </a>
+                    </Link>
 
                     <div className="mt-8 flex gap-2">
                         {["login", "register"].map((m) => (

@@ -517,3 +517,16 @@ as a general background with scroll animations. Iterated direction (latest wins)
 - OWNER: HEADER REVIEWS BUTTON SIZED TO MATCH (2026-09-10) — Reviews button now uses the
   exact same mono pill styling/size as Log in (37px height both, desktop + mobile).
   TESTED: measured equal heights, no overflow.
+
+- OWNER: MUSIC NEVER RESTARTS + LOGIN LANDS ON HOMEPAGE (2026-09-10) — "music starts from
+  beginning when logging in; make it loop with no cut outs/starts/stops no matter what;
+  first login should go to the homepage not the chat". ROOT CAUSE: the nav LOG IN was an
+  <a href> = full page reload, killing the audio; the new context then started it from
+  zero on the next gesture. FIX: (1) nav Log in/My account + login back-link are now
+  client-side Links (no reload, no cut); (2) the audio persists its position to
+  localStorage (timeupdate, ~1/s) and RESUMES from there after any full reload — only a
+  browser gesture is needed after reloads (autoplay policy); (3) after login/register users
+  now land on "/" (admins → /admin); My account button still goes to the portal chat.
+  TESTED in browser: music kept playing across login (position 2.3→4.4→6.5, never reset),
+  landed on homepage after login with MY ACCOUNT in nav, hard reload → first scroll
+  resumed at ~4.4 (not 0), no overflow.

@@ -12,6 +12,18 @@ function getAudio() {
         sharedAudio.loop = true;
         sharedAudio.preload = "auto";
         sharedAudio.volume = 0.3;
+        // a full page load kills audio no matter what (browser law) — so we
+        // remember the position and continue from there instead of restarting
+        try {
+            const saved = parseFloat(localStorage.getItem("tmn-music-pos") || "0");
+            if (saved > 1) sharedAudio.currentTime = saved;
+        } catch {}
+        let lastSaved = 0;
+        sharedAudio.addEventListener("timeupdate", () => {
+            if (sharedAudio.currentTime - lastSaved < 1) return;
+            lastSaved = sharedAudio.currentTime;
+            try { localStorage.setItem("tmn-music-pos", String(sharedAudio.currentTime)); } catch {}
+        });
     }
     return sharedAudio;
 }
