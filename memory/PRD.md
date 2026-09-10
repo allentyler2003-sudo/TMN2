@@ -670,3 +670,16 @@ as a general background with scroll animations. Iterated direction (latest wins)
   /app/scripts/test_email_html_button.py — captured the exact server-built email HTML:
   button present, href = public token URL, attachment intact; visual render check of the
   email: on-brand button, no overflow. No frontend changes needed.
+
+- BUGFIX — 403 ON THE EMAIL DOWNLOAD LINK (owner: iPhone screenshot, "403 Forbidden",
+  URL bar = view.emergentcf.cloud): the link was built from the request's Host header,
+  which through the platform's app-view proxy is the BUILDER view domain — not publicly
+  reachable by email recipients (backend logs prove the click never reached the app).
+  FIX: link base is now the site's public origin FRONTEND_URL (same origin as CORS +
+  Stripe; download route + logo verified 200 on it publicly), request-host kept only as
+  fallback. VERIFIED: html-capture test with Host=view.emergentcf.cloud → href uses the
+  public origin (no "emergentcf" anywhere in the email) + full public E2E re-run ALL PASS
+  (create → send → real email → token → public download 200 exact bytes → friendly 404 →
+  cleanup). NOTE: invoices emailed BEFORE this fix keep the dead link in the recipient's
+  inbox — re-sending the invoice email refreshes the stored file + token and delivers a
+  working button (upsert by invoice id).

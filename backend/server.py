@@ -1000,12 +1000,13 @@ async def admin_email_invoice(invoice_id: str, body: InvoiceEmailInput, request:
                       "created_at": datetime.now(timezone.utc).isoformat()}},
             upsert=True,
         )
-        host = request.headers.get("host")
-        if host:
-            proto = request.headers.get("x-forwarded-proto") or "https"
+        # link must use the site's PUBLIC origin — the admin's browsing host
+        # (e.g. the platform app-view domain) isn't reachable by email recipients
+        base = (FRONTEND_URL or f"{(request.headers.get('x-forwarded-proto') or 'https')}://{request.headers.get('host')}").rstrip("/")
+        if base:
             download_row = (
                 f'<tr><td style="padding:18px 0 0">'
-                f'<a href="{proto}://{host}/api/invoices/download/{token}" '
+                f'<a href="{base}/api/invoices/download/{token}" '
                 f'style="display:inline-block;background:#0a0a0a;color:#C6A55C;font-size:13px;'
                 f'font-weight:bold;letter-spacing:1.2px;text-decoration:none;padding:12px 24px;'
                 f'border-radius:10px">DOWNLOAD INVOICE PDF</a></td></tr>'
