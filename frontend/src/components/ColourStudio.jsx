@@ -60,48 +60,13 @@ const BRANDS = {
 
 const SURFACES = {
     walls: { label: "Walls", stroke: "#E63946" },
-    woodwork: { label: "Woodwork", stroke: "#1D4ED8" },
-};
+};;
 
 const SHEENS = ["matte", "silk", "gloss"];
 const LOOKS_KEY = "tmn-saved-looks";
 
 const API_BASE = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-/* Smart colour pairing — curated trim suggestions for the chosen wall colour.
-   Each rule lists wall hexes it covers and the trio of trim colours (from the
-   brand palettes above) that flatter them; unknown colours snap to the nearest
-   rule in Lab space. */
-const ALL_SWATCHES = [...SWATCHES, ...FARROW_BALL, ...DULUX];
-
-const PAIRING_RULES = [
-    { match: ["#1F3A93", "#1B2A4A", "#33485D", "#47526E", "#3F6089"], trio: ["Heritage white", "Pigeon", "Elephant's Breath"] },
-    { match: ["#2C4A3B", "#435B51", "#9CBB99", "#9CAF88"], trio: ["Warm ivory", "Ammonite", "Dead Salmon"] },
-    { match: ["#36454F", "#3D3D3D", "#373F44", "#5E5B54"], trio: ["Warm ivory", "Dead Salmon", "Soft blush"] },
-    { match: ["#C1613B", "#BE5B2F", "#B1A289"], trio: ["Heritage white", "Pigeon", "Card Room Green"] },
-    { match: ["#E8C4C4", "#F3D7D8"], trio: ["Anthracite", "Mole's Breath", "Warm ivory"] },
-    { match: ["#7EB6D9", "#A3B7CD"], trio: ["Heritage white", "Anthracite", "Pigeon"] },
-    { match: ["#F5F0E1", "#F0EBE0", "#E9E1D2", "#DDD9CB", "#F3EBDC", "#DAD7CD", "#C0B3AB", "#A39C91", "#708090", "#9BA089"], trio: ["Hague Blue", "Forest green", "Charcoal"] },
-];
-
-function pickPairings(hex) {
-    const h = normaliseHex(hex).toUpperCase();
-    const rule = PAIRING_RULES.find((r) => r.match.includes(h));
-    let chosen = rule;
-    if (!chosen) {
-        const [L1, a1, b1] = rgbToLab(...hexToRgb(h));
-        let bestD = Infinity;
-        for (const r of PAIRING_RULES) {
-            const [L2, a2, b2] = rgbToLab(...hexToRgb(r.match[0]));
-            const d = (L1 - L2) ** 2 + (a1 - a2) ** 2 + (b1 - b2) ** 2;
-            if (d < bestD) {
-                bestD = d;
-                chosen = r;
-            }
-        }
-    }
-    return chosen.trio.map((name) => ALL_SWATCHES.find((s) => s.name === name)).filter(Boolean);
-}
 
 async function fileToDataUrl(file) {
     return new Promise((resolve, reject) => {
@@ -257,7 +222,6 @@ export default function ColourStudio() {
     const [activeLayer, setActiveLayer] = useState("walls");
     const [layerColours, setLayerColours] = useState({
         walls: SWATCHES[1],
-        woodwork: { name: "Anthracite", hex: "#3D3D3D" },
     });
     const [sheen, setSheen] = useState("matte");
     const [customHex, setCustomHex] = useState("#1F3A93");
@@ -269,7 +233,7 @@ export default function ColourStudio() {
     const [emailState, setEmailState] = useState(null);
     const [emailing, setEmailing] = useState(false);
     const [strokes, setStrokes] = useState(0);
-    const [autoDone, setAutoDone] = useState({ walls: false, woodwork: false });
+    const [autoDone, setAutoDone] = useState({ walls: false });
     const [savedLooks, setSavedLooks] = useState(() => loadSavedLooks());
     const [showSaved, setShowSaved] = useState(false);
     const [savedFlash, setSavedFlash] = useState("");
@@ -279,8 +243,8 @@ export default function ColourStudio() {
     const canvasRef = useRef(null);
     const imgRef = useRef(null);
     const drawing = useRef(false);
-    const strokesRef = useRef({ walls: [], woodwork: [] });
-    const autoMaskRef = useRef({ walls: null, woodwork: null });
+    const strokesRef = useRef({ walls: [] });
+    const autoMaskRef = useRef({ walls: null });
 
     const redraw = () => {
         const canvas = canvasRef.current;
@@ -293,7 +257,7 @@ export default function ColourStudio() {
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const scale = canvas.width / (canvas.getBoundingClientRect().width || 1);
-        for (const kind of ["walls", "woodwork"]) {
+        for (const kind of ["walls"]) {
             const col = SURFACES[kind].stroke;
             if (autoMaskRef.current[kind]) {
                 ctx.drawImage(autoMaskRef.current[kind], 0, 0, canvas.width, canvas.height);
@@ -371,9 +335,9 @@ export default function ColourStudio() {
         setError("");
         setResult(null);
         setEmailState(null);
-        strokesRef.current = { walls: [], woodwork: [] };
-        autoMaskRef.current = { walls: null, woodwork: null };
-        setAutoDone({ walls: false, woodwork: false });
+        strokesRef.current = { walls: [] };
+        autoMaskRef.current = { walls: null };
+        setAutoDone({ walls: false });
         setStrokes(0);
         try {
             setImage(await fileToDataUrl(file));
@@ -418,7 +382,7 @@ export default function ColourStudio() {
 
     const generate = () => {
         if (!image || !imgRef.current) return;
-        const layers = ["walls", "woodwork"]
+        const layers = ["walls"]
             .filter((k) => strokesRef.current[k].length || autoMaskRef.current[k])
             .map((kind) => ({ kind, hex: layerColours[kind].hex }));
         if (!layers.length) {
@@ -552,7 +516,6 @@ export default function ColourStudio() {
 
     const list = BRANDS[brand].list;
     const activeColour = layerColours[activeLayer];
-    const pairings = pickPairings(activeColour.hex);
 
     return (
         <section id="colours" data-testid="colour-studio" className="relative overflow-x-hidden py-20 sm:py-28">
@@ -574,7 +537,7 @@ export default function ColourStudio() {
                     </div>
                     <FadeUp delay={0.2} className="max-w-sm">
                         <p className="text-base font-medium leading-relaxed text-ink/80">
-                            Upload a photo, brush over the walls, door or woodwork, pick a paint
+                            Upload a photo, brush or tap over the walls, pick a paint
                             colour and see it instantly — drag the slider to compare.
                         </p>
                     </FadeUp>
@@ -738,7 +701,7 @@ export default function ColourStudio() {
                                         </div>
                                         {tapMode && (
                                             <p className="mt-2 text-[11px] font-medium text-ink/45" data-testid="colour-tap-hint">
-                                                Tap any surface — wall, door, frame or pane — to select the whole area.
+                                                Tap any part of the wall to select that whole area.
                                             </p>
                                         )}
                                         <input
@@ -800,29 +763,6 @@ export default function ColourStudio() {
                                             Brand colours are close digital matches — always order a
                                             sample pot before committing.
                                         </p>
-                                        {pairings.length > 0 && (
-                                            <div className="mt-4" data-testid="colour-pairings">
-                                                <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/55">
-                                                    Pairs well with — tap to use on the woodwork
-                                                </p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {pairings.map((p) => (
-                                                        <button
-                                                            key={p.name}
-                                                            data-testid={`colour-pairing-${p.name.toLowerCase().replace(/[^a-z]+/g, "-")}`}
-                                                            onClick={() => setLayerColours((c) => ({ ...c, woodwork: p }))}
-                                                            className="flex items-center gap-2 rounded-full border border-ink/20 px-3.5 py-2 text-xs font-bold text-ink/75 transition-colors hover:border-ink hover:bg-ink hover:text-paper"
-                                                        >
-                                                            <span
-                                                                className="h-3.5 w-3.5 shrink-0 rounded-full ring-1 ring-ink/20"
-                                                                style={{ backgroundColor: p.hex }}
-                                                            />
-                                                            {p.name}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
 
                                     <div className="rounded-2xl border border-ink/10 bg-ink/[0.03] p-4">
@@ -883,7 +823,7 @@ export default function ColourStudio() {
                                         <p className="mt-2 text-[11px] font-medium text-ink/45">
                                             {sheen === "matte" && "Flat, modern, no shine — the current UK favourite."}
                                             {sheen === "silk" && "A gentle soft sheen that catches the light."}
-                                            {sheen === "gloss" && "High shine with strong light reflections — classic woodwork."}
+                                            {sheen === "gloss" && "High shine with strong light reflections."}
                                         </p>
                                     </div>
 

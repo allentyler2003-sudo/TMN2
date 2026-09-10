@@ -304,12 +304,11 @@ function growWallParts(d, W, H) {
                     Math.abs(smooth[ni * 4] - smooth[seed * 4]) +
                     Math.abs(smooth[ni * 4 + 1] - smooth[seed * 4 + 1]) +
                     Math.abs(smooth[ni * 4 + 2] - smooth[seed * 4 + 2]);
-                // stay near the wall's own colour (so ramps onto ground/doors
-                // are refused) while still walking smooth shading gradients.
-                // 18 seals the 3x3-blur ramps of any boundary with contrast
-                // >= ~45 (doors, skirting, windows) — the blur spreads such a
-                // step to ~20 per pixel, which must stay ABOVE the threshold
-                if (localDiff < 18 && seedDiff < 90) {
+                // stay near the wall's own colour while walking smooth
+                // shading gradients: generous drift (140) so shaded patches of
+                // the SAME wall still fill, but the ground/door boundary
+                // ramps (~50 per pixel) stay above the local threshold
+                if (localDiff < 24 && seedDiff < 140) {
                     local[ni] = 1;
                     q.push(ni);
                 }
@@ -380,7 +379,7 @@ export function regionFromPoint(img, xFrac, yFrac, kind = "walls") {
                 Math.abs(smooth[ni * 4 + 2] - smooth[seed * 4 + 2]);
             // the same tolerances as the wall fill: walk smooth shading, stop
             // at real edges, stay near the tapped surface's colour
-            if (localDiff < 18 && seedDiff < 90) {
+            if (localDiff < 24 && seedDiff < 140) {
                 inMask[ni] = 1;
                 q.push(ni);
             }

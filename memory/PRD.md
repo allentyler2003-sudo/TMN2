@@ -321,3 +321,14 @@ as a general background with scroll animations. Iterated direction (latest wins)
   testing agent iteration_5 on a real DOM: both wall faces painted (0.0% on sky/ground/
   door/pipe/glass), door 89.5% + both window rings ~30% strips with glass 0.0%, mobile
   0px overflow, homepage + chat FAB fine.
+
+- OWNER: REMOVE TRIM FROM THE SITE (2026-09-10) — "focus strictly on wall colour, save
+  the trim option for later, just remove it from the site". SURFACES is walls-only (the
+  woodwork layer code stays dormant in colour.js + git history), the pairings strip and
+  the woodwork chip are gone, all copy is walls-focused. Wall-fill tolerances widened
+  (localDiff 18→24, seedDiff 90→140, tap fill matching) so shaded patches of the same
+  wall fill completely instead of leaving white patches — sky plausibility, the
+  bottom-quarter rule and door/ground edges still seal. Self-tested (owner asked to
+  save credits, no subagents): harness 7/7 ×3 stable (house wall 86-88%, sky/door/
+  ground 0%, two-walls 100/100 pipe 0%), recolour 0 failed, esbuild clean, visualiser
+  screenshot: no woodwork chip, no overflow, walls-focused copy renders.
