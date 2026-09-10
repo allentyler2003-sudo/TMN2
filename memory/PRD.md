@@ -141,5 +141,18 @@ as a general background with scroll animations. Iterated direction (latest wins)
     furniture blue instead of walls). Needs tuning with real room photos; not equivalent
     to gpt-image-1/nano-banana quality. Chat answers are basic (0.5B model).
 
+- BRUSH-TO-PAINT VISUALISER (owner chose option A after self-hosted SD failed on real
+  photos — weak colour fidelity + quality loss): the colour studio is now fully client-side
+  classical image processing — upload, BRUSH over any surface (canvas mask, touch-ready,
+  undo/clear/size slider), pick from 12 paint swatches or any custom hex, and the brushed
+  region is re-tinted in LAB space keeping the photo's own lightness/shading (average-L
+  rescaled to the target colour's lightness) — TRUE-to-colour, INSTANT (<1s), ZERO quality
+  loss, ZERO cost, no AI service, no keys, no limits. Interior/Exterior toggle removed
+  (brush works on any surface); before/after slider, save, email, WhatsApp quote all kept;
+  section retitled "Colour visualiser". Verified: brushed wall pixels sample EXACTLY the
+  target colour (62,73,153 for #1F3A93) with untouched quality elsewhere; mobile + desktop.
+  Backend colour-generation endpoints removed; ai_worker/ai_local now chat-only
+  (Qwen2.5-0.5B local, ~25-55s per reply through the public URL, streamed).
+
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.

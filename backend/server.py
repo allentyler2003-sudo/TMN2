@@ -794,58 +794,6 @@ async def ai_chat(input: AiChatInput):
 
 # ---------- AI colour visualiser ----------
 
-class ColourRequest(BaseModel):
-    image: str = Field(min_length=32)
-    prompt: str = Field(min_length=3, max_length=600)
-    mode: str = Field(default="interior", pattern="^(interior|exterior)$")
-
-
-@api_router.post("/ai/colour")
-async def ai_colour(body: ColourRequest):
-    if not body.image.startswith("data:image/"):
-        raise HTTPException(status_code=400, detail="Please upload a valid image")
-    try:
-        png_bytes = base64.b64decode(body.image.split(",", 1)[1])
-    except Exception:
-        raise HTTPException(status_code=400, detail="That image could not be read")
-    if len(png_bytes) > 12 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="Image too large — try a smaller photo")
-
-    clean_prompt = body.prompt.strip()
-    for lead in ("I want ", "I want the ", "I'd like ", "I would like ", "Please "):
-        if clean_prompt.lower().startswith(lead.lower()):
-            clean_prompt = clean_prompt[len(lead):]
-            break
-    clean_prompt = clean_prompt[0].upper() + clean_prompt[1:] if clean_prompt else clean_prompt
-
-    if body.mode == "exterior":
-        styled_prompt = f"{clean_prompt}, painted exterior wall finish, photorealistic, high detail"
-        negative_prompt = (
-            "warped, distorted, cartoon, illustration, blurry, low quality, text, watermark, people, furniture"
-        )
-    else:
-        styled_prompt = f"{clean_prompt}, smooth painted wall finish, photorealistic, high detail"
-        negative_prompt = (
-            "warped, distorted, cartoon, illustration, blurry, low quality, text, watermark, people, furniture, window"
-        )
-
-    # start the generation in the background and return a job id immediately —
-    # generations take minutes, and the public edge cuts long responses (~60s)
-    job_id = str(uuid.uuid4())
-    await ai_local.start_colour_job(job_id, png_bytes, styled_prompt, negative_prompt)
-    await db.ai_colours.insert_one({
-        "prompt": body.prompt,
-        "mode": body.mode,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    })
-    return {"job_id": job_id}
-
-
-@api_router.get("/ai/colour/result/{job_id}")
-async def ai_colour_result(job_id: str):
-    return ai_local.get_colour_job(job_id)
-
-
 class ColourEmailInput(BaseModel):
     to: str = Field(min_length=5, max_length=120)
     image: str = Field(min_length=32)
