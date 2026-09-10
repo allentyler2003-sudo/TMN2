@@ -651,3 +651,22 @@ as a general background with scroll animations. Iterated direction (latest wins)
   later" — nothing new built this session by owner choice. These four remain the
   priority queue, followed by real project photos (needs owner uploads) and the
   server.py routers/ split.
+- OWNER: DOWNLOAD LINK INSIDE THE INVOICE EMAIL (2026-09-11) — "add an invoice download
+  link in the email". DONE: (1) NEW PUBLIC ENDPOINT GET /api/invoices/download/{token} —
+  streams the stored PDF with Content-Disposition attachment (secure random
+  secrets.token_urlsafe(24) token, 404 friendly message on bad/expired links). (2) The
+  email endpoint now stores the admin's browser-built PDF in a new `invoice_files`
+  collection (upsert by invoice id — re-sending updates the file + token) and injects a
+  dark-on-gold "DOWNLOAD INVOICE PDF" button into the email body, built from the request's
+  public Host + X-Forwarded-Proto; filename sanitised; PDF attachment KEPT as well.
+  (3) BONUS REGRESSION FIX found during this work: POST /admin/invoices/{id}/send had
+  lost its tail (orphaned into the email endpoint as dead code — removed in the earlier
+  lint fix) so it no longer dropped the portal chat message or returned the invoice JSON;
+  tail restored (message "Invoice TMN-XXXX for £X has been sent to you…" + invoice_public).
+  TESTED (self-test, credit-light per owner): /app/scripts/test_email_download_link.py —
+  admin login, invoice create, /send returns JSON + drops portal message, real email via
+  Resend proxy (attached:true), token stored, PUBLIC download 200 with exact PDF bytes +
+  filename="TMN-0004.pdf" header, bad token → friendly 404, cleanup verified (0 leftovers);
+  /app/scripts/test_email_html_button.py — captured the exact server-built email HTML:
+  button present, href = public token URL, attachment intact; visual render check of the
+  email: on-brand button, no overflow. No frontend changes needed.

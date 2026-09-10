@@ -6,6 +6,7 @@ import re
 import uuid
 import json
 import base64
+import secrets
 import ipaddress
 import bcrypt
 import jwt
@@ -956,6 +957,12 @@ async def admin_send_invoice(invoice_id: str, admin: dict = Depends(require_admi
     if not inv.get("customer_id"):
         raise HTTPException(status_code=400, detail="This invoice is for an off-site client — download it and email it instead")
     total = inv.get("total", 0)
+    text = (
+        f"Invoice {inv.get('number', '')} for £{total:,.2f} has been sent to you — "
+        "open My invoices in your account to view or settle it."
+    )
+    await db.messages.insert_one(msg_doc(str(inv["customer_id"]), "admin", text, None))
+    return invoice_public(inv)
 
 
 class InvoiceEmailInput(BaseModel):
@@ -965,7 +972,7 @@ class InvoiceEmailInput(BaseModel):
 
 
 @api_router.post("/admin/invoices/{invoice_id}/email")
-async def admin_email_invoice(invoice_id: str, body: InvoiceEmailInput, admin: dict = Depends(require_admin)):
+async def admin_email_invoice(invoice_id: str, body: InvoiceEmailInput, request: Request, admin: dict = Depends(require_admin)):
     """Email the invoice to any address — the PDF is attached when the admin's
     browser supplies it, and the email body is always this server-side
     template (recipients and PDF come from the admin's own invoice record)."""
@@ -982,6 +989,27 @@ async def admin_email_invoice(invoice_id: str, body: InvoiceEmailInput, admin: d
     if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", to):
         raise HTTPException(status_code=400, detail="That email address doesn't look right")
     client_name = inv.get("client_name") or "Client"
+    download_row = ""
+    filename = re.sub(r"[^A-Za-z0-9._-]", "_", body.filename.strip() or f"{inv.get('number', 'invoice')}.pdf")
+    if body.pdf_base64:
+        # store the PDF + a one-off token so the email can carry a public download link
+        token = secrets.token_urlsafe(24)
+        await db.invoice_files.update_one(
+            {"invoice_id": str(oid)},
+            {"$set": {"token": token, "pdf_b64": body.pdf_base64, "filename": filename,
+                      "created_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True,
+        )
+        host = request.headers.get("host")
+        if host:
+            proto = request.headers.get("x-forwarded-proto") or "https"
+            download_row = (
+                f'<tr><td style="padding:18px 0 0">'
+                f'<a href="{proto}://{host}/api/invoices/download/{token}" '
+                f'style="display:inline-block;background:#0a0a0a;color:#C6A55C;font-size:13px;'
+                f'font-weight:bold;letter-spacing:1.2px;text-decoration:none;padding:12px 24px;'
+                f'border-radius:10px">DOWNLOAD INVOICE PDF</a></td></tr>'
+            )
     rows = "".join(
         f'<tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#1e1e1e">{escape(str(i.get("description") or "—"))}</td>'
         f'<td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;color:#1e1e1e">£{(i.get("amount") or 0):,.2f}</td></tr>'
@@ -1006,18 +1034,29 @@ async def admin_email_invoice(invoice_id: str, body: InvoiceEmailInput, admin: d
         f'<tr><td style="padding:10px 0;font-weight:bold;color:#0a0a0a">Total due</td>'
         f'<td style="padding:10px 0;text-align:right;font-weight:bold;color:#0a0a0a">£{inv.get("total", 0):,.2f}</td></tr></table></td></tr>'
         f'<tr><td style="padding:12px 0 0;color:#555;font-size:13px">Due by {escape(str(inv.get("due_date") or "—"))}. '
-        f'{"This invoice has been paid — thank you." if str(inv.get("status")) == "paid" else "The PDF invoice is attached for your records."}</td></tr>'
+        f'{"This invoice has been paid — thank you." if str(inv.get("status")) == "paid" else "The PDF invoice is attached and linked below for your records."}</td></tr>'
+        + download_row +
         f'<tr><td style="padding:16px 0 0;font-size:11px;color:#999">Sent by {escape(EMAIL_FROM_NAME)}. We never ask for your password or card details by email.</td></tr>'
         f'</table></td></tr></table>'
     )
     attachments = None
     if body.pdf_base64:
-        attachments = [{
-            "filename": (body.filename.strip() or f"{inv.get('number', 'invoice')}.pdf"),
-            "content": body.pdf_base64,
-        }]
+        attachments = [{"filename": filename, "content": body.pdf_base64}]
     email_id = await send_email(to=to, subject=f"Invoice {inv.get('number', '')} from {EMAIL_FROM_NAME}", html=html, attachments=attachments)
     return {"ok": True, "email_id": email_id, "attached": bool(attachments)}
+
+
+@api_router.get("/invoices/download/{token}")
+async def invoice_download(token: str):
+    """Public one-click PDF download — the tokenised link is included in invoice emails."""
+    rec = await db.invoice_files.find_one({"token": token})
+    if not rec or not rec.get("pdf_b64"):
+        raise HTTPException(status_code=404, detail="This download link is no longer valid — ask us for a fresh copy")
+    return Response(
+        content=base64.b64decode(rec["pdf_b64"]),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{rec.get("filename") or "invoice.pdf"}"'},
+    )
 
 
 @api_router.patch("/admin/invoices/{invoice_id}")
