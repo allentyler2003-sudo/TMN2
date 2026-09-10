@@ -537,3 +537,20 @@ as a general background with scroll animations. Iterated direction (latest wins)
   account portal — opening the page now rests on the "HELLO, {name}" greeting; visitors
   scroll to the conversation themselves; incoming messages no longer yank the view.
   TESTED: mobile — opens at scroll 0 with the greeting in view, no overflow.
+
+- OWNER: ADMIN INVOICE DESK + CLIENT ARCHIVING (2026-09-10) — "button right of the unread
+  box: generate invoices, view paid & unpaid with a search bar, send to client on the site
+  or download to email; archive a client once job completed & paid, return full chat
+  history if they request new work". DONE: (1) INVOICES pill right of UNREAD in the inbox
+  header → new top-level Invoices desk (InvoicesView.jsx): Generate-invoice modal (client
+  picker, line items with live total, due date, draft/sent), search bar (number/client/
+  email/status), All/Unpaid/Paid filter chips with counts, per-row actions — SEND TO CLIENT
+  (POST /admin/invoices/{id}/send: marks sent + drops a chat message into the client's
+  portal thread: "Invoice TMN-0005 for £1,370.00 has been sent to you…"), DOWNLOAD (jsPDF
+  via existing invoicePdf util), Mark paid/unpaid (PATCH). (2) ARCHIVE: POST /admin/
+  customers/{id}/archive toggles archived; inbox hides archived clients by default with a
+  "Show archived (N)" toggle + ARCHIVED badge + faded rows; one-tap restore; GET customers
+  sorts pinned → active → archived; AUTO-RETURN: an archived client sending a chat message
+  is instantly unarchived with full history intact. TESTED via curl + browser: invoice
+  create/send/client-visible/download flash all PASS; search+filters PASS; archive →
+  hidden + badge → restore PASS; auto-return PASS; no overflow.

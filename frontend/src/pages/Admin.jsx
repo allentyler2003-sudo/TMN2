@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Check, Pencil, Pin, X } from "lucide-react";
+import { Archive, ArchiveRestore, Check, Pencil, Pin, ReceiptText, X } from "lucide-react";
 import { API_BASE, formatApiError, useAuth } from "@/context/AuthContext";
 import ChatTab from "@/components/admin/ChatTab";
 import JobsTab from "@/components/admin/JobsTab";
@@ -9,6 +9,7 @@ import InvoicesTab from "@/components/admin/InvoicesTab";
 import ClientsView from "@/components/admin/ClientsView";
 import HoloBackground from "@/components/HoloBackground";
 import StatsView from "@/components/admin/StatsView";
+import InvoicesView from "@/components/admin/InvoicesView";
 
 const TABS = ["Chat", "Jobs", "Notes", "Invoices"];
 
@@ -23,6 +24,7 @@ export default function Admin() {
     const [editingName, setEditingName] = useState(false);
     const [nameDraft, setNameDraft] = useState("");
     const [favourites, setFavourites] = useState(null);
+    const [showArchived, setShowArchived] = useState(false);
 
     const loadCustomers = async () => {
         try {
@@ -71,6 +73,23 @@ export default function Admin() {
     }, []);
 
     const active = customers.find((c) => c.id === activeId);
+
+    const toggleArchive = async (c) => {
+        try {
+            const { data } = await axios.post(
+                `${API_BASE}/admin/customers/${c.id}/archive`,
+                {},
+                { withCredentials: true }
+            );
+            setCustomers((cs) =>
+                cs
+                    .map((x) => (x.id === c.id ? { ...x, archived: data.archived } : x))
+                    .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
+            );
+        } catch (err) {
+            setError(formatApiError(err.response?.data?.detail));
+        }
+    };
 
     const togglePin = async (c) => {
         try {
@@ -167,6 +186,8 @@ export default function Admin() {
             <main className="mx-auto max-w-[1500px] px-5 py-10 sm:px-8 lg:py-14">
                 {view === "stats" ? (
                     <StatsView stats={stats} favourites={favourites} />
+                ) : view === "invoices" ? (
+                    <InvoicesView customers={customers} />
                 ) : view === "records" ? (
                     <>
                         <div className="mb-8">
@@ -200,6 +221,14 @@ export default function Admin() {
                                 <span className="rounded-full bg-ink px-4 py-2 text-paper" data-testid="stat-unread">
                                     {stats ? `${stats.unread} unread` : "—"}
                                 </span>
+                                <button
+                                    data-testid="admin-invoices-open"
+                                    onClick={() => setView("invoices")}
+                                    title="Generate invoices · view paid & unpaid"
+                                    className="inline-flex items-center gap-2 rounded-full border border-ink/30 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-ink transition-colors duration-300 hover:border-ink hover:bg-ink hover:text-paper"
+                                >
+                                    <ReceiptText className="h-3.5 w-3.5" /> Invoices
+                                </button>
                             </div>
                         </div>
 
@@ -208,12 +237,24 @@ export default function Admin() {
                         <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
                             {/* customer list */}
                             <div className="max-h-[65vh] space-y-3 overflow-y-auto rounded-3xl border border-ink/10 bg-white/85 p-4">
-                                {customers.length === 0 && (
+                                {customers.some((c) => c.archived) && (
+                                    <button
+                                        data-testid="admin-toggle-archived"
+                                        onClick={() => setShowArchived((s) => !s)}
+                                        className={`w-full rounded-xl px-3 py-2 font-mono text-[9px] font-bold uppercase tracking-[0.15em] transition-colors ${
+                                            showArchived ? "bg-ink text-paper" : "border border-ink/20 text-ink/60 hover:border-ink hover:text-ink"
+                                        }`}
+                                    >
+                                        <Archive className="mr-1.5 inline h-3 w-3" />
+                                        {showArchived ? "Hiding archived" : `Show archived (${customers.filter((c) => c.archived).length})`}
+                                    </button>
+                                )}
+                                {customers.filter((c) => showArchived || !c.archived).length === 0 && (
                                     <p className="p-6 text-center text-sm font-medium text-ink/55">
                                         No customers have registered yet.
                                     </p>
                                 )}
-                                {customers.map((c) => (
+                                {customers.filter((c) => showArchived || !c.archived).map((c) => (
                                     <div
                                         key={c.id}
                                         role="button"
@@ -225,7 +266,7 @@ export default function Admin() {
                                             activeId === c.id
                                                 ? "border-ink bg-white shadow-[0_10px_30px_rgba(10,10,10,0.08)]"
                                                 : "border-transparent hover:border-ink/20"
-                                        } ${c.pinned ? "ring-1 ring-[#C6A55C]/60" : ""}`}
+                                        } ${c.pinned ? "ring-1 ring-[#C6A55C]/60" : ""} ${c.archived ? "opacity-60" : ""}`}
                                     >
                                         <div className="flex items-center justify-between gap-3">
                                             <div className="flex min-w-0 items-center gap-2">
@@ -238,9 +279,17 @@ export default function Admin() {
                                                 <span className="font-display text-base font-bold uppercase tracking-tight">
                                                     {c.name}
                                                 </span>
-                                                {c.pinned && (
+                                                {c.pinned && !c.archived && (
                                                     <span className="hidden shrink-0 rounded-full bg-[#C6A55C]/15 px-2 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.15em] text-ink/70 sm:inline">
                                                         Priority
+                                                    </span>
+                                                )}
+                                                {c.archived && (
+                                                    <span
+                                                        data-testid={`admin-archived-badge-${c.email}`}
+                                                        className="shrink-0 rounded-full bg-ink/10 px-2 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.15em] text-ink/60"
+                                                    >
+                                                        Archived
                                                     </span>
                                                 )}
                                             </div>
@@ -267,6 +316,21 @@ export default function Admin() {
                                                     }`}
                                                 >
                                                     <Pin className={`h-3.5 w-3.5 ${c.pinned ? "fill-[#C6A55C] text-[#C6A55C]" : "text-ink/50"}`} />
+                                                </button>
+                                                <button
+                                                    data-testid={`admin-archive-${c.email}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleArchive(c);
+                                                    }}
+                                                    title={c.archived ? "Restore client — full history returns" : "Archive — job completed & paid (history kept)"}
+                                                    className={`rounded-full border p-1.5 transition-colors ${
+                                                        c.archived
+                                                            ? "border-ink bg-ink text-paper hover:opacity-85"
+                                                            : "border-ink/20 hover:border-ink"
+                                                    }`}
+                                                >
+                                                    {c.archived ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5 text-ink/50" />}
                                                 </button>
                                             </div>
                                         </div>

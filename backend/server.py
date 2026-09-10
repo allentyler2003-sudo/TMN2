@@ -271,6 +271,9 @@ async def send_message(input: MessageInput, user: dict = Depends(get_current_use
         if len(input.image) > 3000000:
             raise HTTPException(status_code=400, detail="That image is too large to send — save it and attach it on WhatsApp instead")
         image = input.image
+    # archived client back for new work? restore them instantly — full history stays intact
+    if user.get("archived"):
+        await db.users.update_one({"_id": user["_id"]}, {"$set": {"archived": False}})
     doc = msg_doc(str(user["_id"]), "customer", input.text, image)
     result = await db.messages.insert_one(doc)
     doc["_id"] = result.inserted_id
@@ -595,9 +598,10 @@ async def admin_customers(admin: dict = Depends(require_admin)):
             "unread": unread,
             "total_messages": total,
             "pinned": bool(c.get("pinned", False)),
+            "archived": bool(c.get("archived", False)),
         })
-    # priority (pinned) clients float to the top, newest first within each group
-    out.sort(key=lambda x: not x["pinned"])
+    # priority clients first, then active clients, archived last — newest first within groups
+    out.sort(key=lambda x: (not x["pinned"], x["archived"]))
     return out
 
 
@@ -615,6 +619,25 @@ async def admin_pin_customer(customer_id: str, admin: dict = Depends(require_adm
     pinned = not c.get("pinned", False)
     await db.users.update_one({"_id": oid}, {"$set": {"pinned": pinned}})
     return {"pinned": pinned}
+
+
+@api_router.post("/admin/customers/{customer_id}/archive")
+async def admin_archive_customer(customer_id: str, admin: dict = Depends(require_admin)):
+    """Archive a client once their job is done and paid — chat history, jobs,
+    notes and invoices are all kept. Restored automatically if they message
+    again, or manually with one tap."""
+    from bson import ObjectId
+
+    try:
+        oid = ObjectId(customer_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Customer not found")
+    c = await db.users.find_one({"_id": oid, "role": "customer"})
+    if not c:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    archived = not c.get("archived", False)
+    await db.users.update_one({"_id": oid}, {"$set": {"archived": archived}})
+    return {"archived": archived}
 
 
 @api_router.get("/admin/messages")
@@ -843,6 +866,32 @@ async def admin_create_invoice(input: InvoiceInput, admin: dict = Depends(requir
     result = await db.invoices.insert_one(doc)
     doc["_id"] = result.inserted_id
     return invoice_public(doc)
+
+
+@api_router.post("/admin/invoices/{invoice_id}/send")
+async def admin_send_invoice(invoice_id: str, admin: dict = Depends(require_admin)):
+    from bson import ObjectId
+
+    try:
+        oid = ObjectId(invoice_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invoice not found")
+    inv = await db.invoices.find_one_and_update(
+        {"_id": oid},
+        {"$set": {"status": "sent", "sent_at": datetime.now(timezone.utc).isoformat()}},
+        return_document=True,
+    )
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    total = inv.get("total", 0)
+    text = (
+        f"Invoice {inv.get('number', '')} for £{total:,.2f} has been sent to you — "
+        "open My invoices in your account to view or settle it."
+    )
+    doc = msg_doc(str(inv["customer_id"]), "admin", text, None)
+    result = await db.messages.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return invoice_public(inv)
 
 
 @api_router.patch("/admin/invoices/{invoice_id}")
