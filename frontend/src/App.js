@@ -19,6 +19,7 @@ import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import AiChat from "@/components/AiChat";
 import HomeMusic from "@/components/HomeMusic";
 import ColourTeaser from "@/components/ColourTeaser";
+import Reviews from "@/components/Reviews";
 import Login from "@/pages/Login";
 import Account from "@/pages/Account";
 import Admin from "@/pages/Admin";
@@ -104,6 +105,7 @@ function Site() {
                     <ColourTeaser />
                     <Services />
                     <Work />
+                    <Reviews />
                     <About />
                     <Contact />
                 </main>

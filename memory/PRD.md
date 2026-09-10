@@ -458,3 +458,16 @@ as a general background with scroll animations. Iterated direction (latest wins)
   lands on register), logged-in click goes straight to /account, no overflow. NOTE: the
   Contact page "Quick quote" WhatsApp form was kept (it's a form, not a Get-a-quote tab) —
   flagged to the owner.
+
+- OWNER: 5-STAR REVIEWS SECTION (2026-09-10) — "access and apply these 5 star rating and
+  reviews to the site" (screenshot: Google AI overview — TMN holds 5.0/5 across ~16
+  reviews; TopTenTrades 5.0, high praise on MyBuilder + MyJobQuote; highlights: quality on
+  hard jobs, reliability, site care, ~88% positive recommendation). DONE: new homepage
+  Reviews section (components/Reviews.jsx) placed between Work and About — sticky left
+  column: eyebrow "Rated on TopTenTrades, MyBuilder & MyJobQuote", "FIVE STARS, TIME AFTER
+  TIME.", huge 5.0 + 5 gold stars + "from around 16 client reviews", platform chips; right:
+  4 glass quote-theme cards (Quality of Work / Reliability / Site Care / Repeat Work with
+  sources — paraphrased honestly from the overview, no invented names). SEO:
+  aggregateRating (5.0, 16, bestRating 5) added to the existing LocalBusiness JSON-LD in
+  public/index.html so Google can surface stars. TESTED: section + 4 cards + 5 stars render
+  on desktop + mobile over the holo, no overflow; JSON-LD served (curl confirmed).
