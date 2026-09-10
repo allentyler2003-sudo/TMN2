@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { Archive, Download, Plus, Search, Send } from "lucide-react";
+import { Archive, Download, Mail, Plus, Search, Send } from "lucide-react";
 import { API_BASE, formatApiError } from "@/context/AuthContext";
 import { StatusBadge, fmtDay, fmtMoney } from "@/components/admin/shared";
-import { downloadInvoicePdf } from "@/utils/invoicePdf";
+import { downloadInvoicePdf, invoicePdfBase64 } from "@/utils/invoicePdf";
 
 /* Global invoice desk for the admin: generate invoices for any client, view
    paid + unpaid, search everything, send invoices to clients on the site
@@ -22,6 +22,9 @@ export default function InvoicesView({ customers }) {
     const [busy, setBusy] = useState(false);
     const [flash, setFlash] = useState("");
     const [error, setError] = useState("");
+    const [emailRowId, setEmailRowId] = useState(null);
+    const [emailTo, setEmailTo] = useState("");
+    const [emailBusy, setEmailBusy] = useState(false);
 
     const load = async () => {
         try {
@@ -115,6 +118,40 @@ export default function InvoicesView({ customers }) {
             flash_(`Invoice ${inv.number} marked ${value}.`);
         } catch (err) {
             setError(formatApiError(err.response?.data?.detail));
+        }
+    };
+
+    const openEmail = (inv) => {
+        setEmailRowId((id) => (id === inv.id ? null : inv.id));
+        setEmailTo(inv.client_email || "");
+    };
+
+    const emailInvoice = async (inv) => {
+        const to = emailTo.trim();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) {
+            setError("Enter the email address to send this invoice to.");
+            return;
+        }
+        setEmailBusy(true);
+        setError("");
+        try {
+            const c = clientFor(inv);
+            const pdf_base64 = await invoicePdfBase64(inv, c.name, c.email, c.address || "");
+            const { data } = await axios.post(
+                `${API_BASE}/admin/invoices/${inv.id}/email`,
+                { to, pdf_base64, filename: `${inv.number}.pdf` },
+                { withCredentials: true, timeout: 60000 }
+            );
+            setEmailRowId(null);
+            setFlash(data.attached
+                ? `Invoice ${inv.number} emailed to ${to} — the PDF is attached ✓`
+                : `Invoice ${inv.number} emailed to ${to} ✓`);
+            setTimeout(() => setFlash(""), 3600);
+        } catch (err) {
+            setError(formatApiError(err.response?.data?.detail) || "Couldn't send the email — please try again.");
+            setTimeout(() => setError(""), 3600);
+        } finally {
+            setEmailBusy(false);
         }
     };
 
@@ -415,6 +452,14 @@ export default function InvoicesView({ customers }) {
                                         </>
                                     )}
                                     <button
+                                        data-testid={`admin-invoice-email-${i}`}
+                                        onClick={() => openEmail(inv)}
+                                        title="Send the invoice straight to an email address"
+                                        className="inline-flex items-center gap-1.5 rounded-full border border-ink/20 px-3.5 py-2 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-ink/70 hover:border-ink hover:text-ink"
+                                    >
+                                        <Mail className="h-3 w-3" /> Email
+                                    </button>
+                                    <button
                                         data-testid={`admin-invoice-download-${i}`}
                                         onClick={() => download(inv)}
                                         title="Download the PDF to attach to an email"
@@ -423,6 +468,32 @@ export default function InvoicesView({ customers }) {
                                         <Download className="h-3 w-3" /> Download
                                     </button>
                                 </div>
+                                {emailRowId === inv.id && (
+                                    <div className="mt-3 flex w-full flex-wrap items-center gap-2" data-testid={`admin-invoice-email-box-${i}`}>
+                                        <input
+                                            data-testid={`admin-invoice-email-input-${i}`}
+                                            placeholder="client@example.com"
+                                            value={emailTo}
+                                            onChange={(e) => setEmailTo(e.target.value)}
+                                            className="min-w-0 flex-1 rounded-full border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium"
+                                        />
+                                        <button
+                                            data-testid={`admin-invoice-email-send-${i}`}
+                                            onClick={() => emailInvoice(inv)}
+                                            disabled={emailBusy}
+                                            className="inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2.5 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
+                                        >
+                                            <Send className="h-3 w-3" /> {emailBusy ? "Sending…" : "Send invoice"}
+                                        </button>
+                                        <button
+                                            data-testid={`admin-invoice-email-cancel-${i}`}
+                                            onClick={() => setEmailRowId(null)}
+                                            className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-ink/50 hover:text-ink"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         );
                     })

@@ -2,15 +2,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
+import re
 import uuid
 import json
 import base64
+import ipaddress
 import bcrypt
 import jwt
 import logging
+import httpx
 import stripe
 import resend
 import asyncio
+from html import escape
+from html.parser import HTMLParser
+from urllib.parse import urlparse
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
@@ -950,6 +956,65 @@ async def admin_send_invoice(invoice_id: str, admin: dict = Depends(require_admi
     if not inv.get("customer_id"):
         raise HTTPException(status_code=400, detail="This invoice is for an off-site client — download it and email it instead")
     total = inv.get("total", 0)
+
+
+class InvoiceEmailInput(BaseModel):
+    to: str = Field(min_length=5, max_length=160)
+    pdf_base64: str = Field(default="", max_length=8_000_000)
+    filename: str = Field(default="", max_length=80)
+
+
+@api_router.post("/admin/invoices/{invoice_id}/email")
+async def admin_email_invoice(invoice_id: str, body: InvoiceEmailInput, admin: dict = Depends(require_admin)):
+    """Email the invoice to any address — the PDF is attached when the admin's
+    browser supplies it, and the email body is always this server-side
+    template (recipients and PDF come from the admin's own invoice record)."""
+    from bson import ObjectId
+
+    try:
+        oid = ObjectId(invoice_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invoice not found")
+    inv = await db.invoices.find_one({"_id": oid})
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    to = body.to.strip()
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", to):
+        raise HTTPException(status_code=400, detail="That email address doesn't look right")
+    client_name = inv.get("client_name") or "Client"
+    rows = "".join(
+        f'<tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#1e1e1e">{escape(str(i.get("description") or "—"))}</td>'
+        f'<td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;color:#1e1e1e">£{(i.get("amount") or 0):,.2f}</td></tr>'
+        for i in (inv.get("items") or [])
+    )
+    status_label = {"paid": "Paid", "sent": "Due", "draft": "Draft"}.get(str(inv.get("status", "")).lower(), "Due")
+    html = (
+        f'<table role="presentation" width="100%" style="background:#f5f2ea;padding:24px"><tr><td>'
+        f'<table role="presentation" width="100%" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;padding:28px;font-family:Arial,sans-serif">'
+        f'<tr><td style="padding-bottom:14px;border-bottom:3px solid #C6A55C">'
+        f'<span style="font-size:19px;font-weight:bold;color:#0a0a0a">TMN Decorating &amp; Maintenance</span><br>'
+        f'<span style="font-size:12px;color:#888">Painting · Decorating · Property Maintenance — Plymouth, UK</span></td></tr>'
+        f'<tr><td style="padding:18px 0 6px"><span style="font-size:17px;font-weight:bold;color:#0a0a0a">Invoice {escape(str(inv.get("number") or ""))}</span>'
+        f'<span style="float:right;font-size:12px;color:#927428;background:#fcf9f0;border:1px solid #C6A55C;border-radius:10px;padding:3px 10px">{status_label}</span></td></tr>'
+        f'<tr><td style="padding:6px 0;color:#555;font-size:14px">Billed to: <strong>{escape(client_name)}</strong>'
+        + (f' &lt;{escape(inv.get("client_email") or "")}&gt;' if inv.get("client_email") else "")
+        + f'</td></tr>'
+        f'<tr><td style="padding:10px 0 0"><table role="presentation" width="100%" style="font-size:14px">{rows}'
+        f'<tr><td style="padding:10px 0;font-weight:bold;color:#0a0a0a">Total due</td>'
+        f'<td style="padding:10px 0;text-align:right;font-weight:bold;color:#0a0a0a">£{inv.get("total", 0):,.2f}</td></tr></table></td></tr>'
+        f'<tr><td style="padding:12px 0 0;color:#555;font-size:13px">Due by {escape(str(inv.get("due_date") or "—"))}. '
+        f'{"This invoice has been paid — thank you." if str(inv.get("status")) == "paid" else "The PDF invoice is attached for your records."}</td></tr>'
+        f'<tr><td style="padding:16px 0 0;font-size:11px;color:#999">Sent by {escape(EMAIL_FROM_NAME)}. We never ask for your password or card details by email.</td></tr>'
+        f'</table></td></tr></table>'
+    )
+    attachments = None
+    if body.pdf_base64:
+        attachments = [{
+            "filename": (body.filename.strip() or f"{inv.get('number', 'invoice')}.pdf"),
+            "content": body.pdf_base64,
+        }]
+    email_id = await send_email(to=to, subject=f"Invoice {inv.get('number', '')} from {EMAIL_FROM_NAME}", html=html, attachments=attachments)
+    return {"ok": True, "email_id": email_id, "attached": bool(attachments)}
     text = (
         f"Invoice {inv.get('number', '')} for £{total:,.2f} has been sent to you — "
         "open My invoices in your account to view or settle it."
@@ -1031,6 +1096,108 @@ async def admin_clients(admin: dict = Depends(require_admin)):
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+
+# ---------- Emergent managed email (transactions only) ----------
+EMAIL_BASE_URL = "https://integrations.emergentagent.com"
+EMAIL_KEY = os.environ["EMERGENT_EMAIL_KEY"]
+EMAIL_FROM_NAME = os.environ["EMAIL_FROM_NAME"]
+EMAIL_REPLY_TO = os.environ.get("EMAIL_REPLY_TO")
+
+_SHORTENERS = ("bit.ly", "tinyurl.com", "t.co", "is.gd", "cutt.ly", "goo.gl", "rebrand.ly")
+_CRED_ASK = ("reply with your password", "reply with the code", "send your password", "cvv",
+             "send us your password", "enter your password below", "confirm your card number",
+             "your full card number", "seed phrase", "recovery phrase", "verify your card",
+             "social security number", "confirm your bank details")
+_HOSTISH = re.compile(r"\b(?:https?://)?((?:[a-z0-9-]+\.)+[a-z]{2,})", re.I)
+
+
+def _host_ok(host: str) -> bool:
+    if not host or "xn--" in host:
+        return False
+    try:
+        ipaddress.ip_address(host)
+        return False
+    except ValueError:
+        pass
+    return not any(host == s or host.endswith("." + s) for s in _SHORTENERS)
+
+
+def _same_site(shown: str, real: str) -> bool:
+    return shown == real or real.endswith("." + shown) or shown.endswith("." + real)
+
+
+class _EmailScan(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.tags, self.urls, self.anchors = set(), [], []
+        self._href, self._text = None, []
+
+    def handle_starttag(self, tag, attrs):
+        self.tags.add(tag.lower())
+        self.urls += [v for k, v in attrs if k.lower() in ("href", "src") and v]
+        if tag.lower() == "a":
+            self._href = dict((k.lower(), v) for k, v in attrs).get("href")
+            self._text = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag.lower() == "a" and self._href is not None:
+            self.anchors.append((self._href, "".join(self._text)))
+            self._href, self._text = None, []
+
+
+def _assert_safe_email(subject: str, html: str) -> None:
+    scan = _EmailScan()
+    scan.feed(html)
+    if scan.tags & {"form", "input", "textarea", "select"}:
+        raise ValueError("No forms or input fields in email (G2)")
+    body = f"{subject}\n{html}".lower()
+    for p in _CRED_ASK:
+        if p in body:
+            raise ValueError(f"Email asks the recipient for credentials: {p!r} (G2)")
+    for url in scan.urls:
+        low = url.strip().lower()
+        if low.startswith(("mailto:", "tel:", "cid:", "#")):
+            continue
+        if not low.startswith("https://"):
+            raise ValueError(f"Email links/assets must be absolute https: {url!r} (G3)")
+        host = urlparse(low).hostname or ""
+        if not _host_ok(host) or urlparse(low).username is not None:
+            raise ValueError(f"Shortened, numeric-host or credential-bearing URL: {url!r} (G3)")
+    for href, text in scan.anchors:
+        real = urlparse(href.strip().lower()).hostname or ""
+        if not real:
+            continue
+        for m in _HOSTISH.finditer(text):
+            if not _same_site(m.group(1).lower(), real):
+                raise ValueError(f"Anchor text {m.group(1)!r} ≠ real link host {real!r} (G3)")
+
+
+async def send_email(*, to: str, subject: str, html: str, reply_to: str | None = None, attachments: list | None = None) -> str | None:
+    _assert_safe_email(subject, html)
+    payload = {"to": [to], "subject": subject, "html": html, "from_name": EMAIL_FROM_NAME}
+    if reply_to or EMAIL_REPLY_TO:
+        payload["contact_email"] = reply_to or EMAIL_REPLY_TO
+    if attachments:
+        payload["attachments"] = attachments
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                f"{EMAIL_BASE_URL}/api/v1/email/send",
+                headers={"X-Email-Key": EMAIL_KEY},
+                json=payload,
+            )
+        resp.raise_for_status()
+        return resp.json().get("id")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Email send failed: {e.response.status_code} {e.response.text}")
+        raise HTTPException(status_code=502, detail="Failed to send email")
+    except Exception as e:
+        logger.error(f"Email send error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to send email")
 
 
 async def send_owner_email(subject: str, html: str):

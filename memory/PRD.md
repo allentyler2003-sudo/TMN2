@@ -629,3 +629,16 @@ as a general background with scroll animations. Iterated direction (latest wins)
   send → 400 PASS, registered create carries details PASS; browser — form toggle + fields
   PASS, OFF-SITE badge + no-send PASS, PDF download TMN-0002.pdf PASS (flash + download
   event), no overflow.
+
+- OWNER: EMAIL INVOICES DIRECT (2026-09-10) — "add the option to send to an email address
+  and keep the download option". DONE: every invoice row now has an EMAIL button → inline
+  box (prefilled with the client's email when known) → the browser builds the same
+  professional A4 PDF (jsPDF arraybuffer → base64) → POST /admin/invoices/{id}/email →
+  Emergent managed email proxy (httpx, X-Email-Key, from_name, reply-to) with the PDF
+  ATTACHED; server-side escaped template (letterhead, items, total, due date, status,
+  safety note); Download kept. BUGS FIXED: jsPDF 4 has no "base64" output type (returned
+  null → arraybuffer + btoa chunked); raw 422 array crashed the page (formatApiError now);
+  the 545KB logo blew the proxy body limit → 40KB logo-invoice.png (white, for the dark
+  letterhead). TESTED: real sends to delivered@resend.dev (email_id + attached:true) via
+  curl AND the browser UI with the success flash; download re-verified (TMN-0002.pdf); no
+  overflow.

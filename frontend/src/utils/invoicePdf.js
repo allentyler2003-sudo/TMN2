@@ -4,7 +4,7 @@ const money = (n) =>
   `£${Number(n || 0).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 async function logoBase64() {
-  const res = await fetch("/logo-dark.png");
+  const res = await fetch("/logo-invoice.png");
   const blob = await res.blob();
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -24,12 +24,7 @@ const day = (value) => {
 const STATUS_LABEL = { paid: "PAID", sent: "DUE", draft: "DRAFT" };
 
 /* Fully detailed professional A4 invoice with the TMN logo. */
-export async function downloadInvoicePdf(
-  invoice,
-  customerName = "",
-  customerEmail = "",
-  customerAddress = ""
-) {
+async function buildInvoiceDoc(invoice, customerName, customerEmail, customerAddress) {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const W = 595; // A4 @72dpi
   const M = 44; // margin
@@ -175,5 +170,22 @@ export async function downloadInvoicePdf(
   doc.setTextColor(130, 130, 130);
   doc.text("TMN Decorating & Maintenance — Plymouth, UK  ·  info@tmndecorating.co.uk  ·  07736 325643", M, 812);
 
+  return doc;
+}
+
+export async function downloadInvoicePdf(invoice, customerName = "", customerEmail = "", customerAddress = "") {
+  const doc = await buildInvoiceDoc(invoice, customerName, customerEmail, customerAddress);
   doc.save(`${invoice.number}.pdf`);
+}
+
+export async function invoicePdfBase64(invoice, customerName = "", customerEmail = "", customerAddress = "") {
+  const doc = await buildInvoiceDoc(invoice, customerName, customerEmail, customerAddress);
+  // jsPDF 4.x has no "base64" output type (it returns null) — encode the arraybuffer
+  const bytes = new Uint8Array(doc.output("arraybuffer"));
+  let bin = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(bin);
 }
