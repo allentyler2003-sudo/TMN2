@@ -992,10 +992,13 @@ async def admin_email_invoice(invoice_id: str, body: InvoiceEmailInput, admin: d
         f'<table role="presentation" width="100%" style="background:#f5f2ea;padding:24px"><tr><td>'
         f'<table role="presentation" width="100%" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;padding:28px;font-family:Arial,sans-serif">'
         f'<tr><td style="padding-bottom:14px;border-bottom:3px solid #C6A55C">'
-        f'<span style="font-size:19px;font-weight:bold;color:#0a0a0a">TMN Decorating &amp; Maintenance</span><br>'
-        f'<span style="font-size:12px;color:#888">Painting · Decorating · Property Maintenance — Plymouth, UK</span></td></tr>'
+        f'<table role="presentation" width="100%"><tr>'
+        f'<td><span style="font-size:19px;font-weight:bold;color:#0a0a0a">TMN Decorating &amp; Maintenance</span><br>'
+        f'<span style="font-size:12px;color:#888">Painting · Decorating · Property Maintenance — Plymouth, UK</span></td>'
+        + (f'<td align="right" style="width:74px"><img src="{EMAIL_LOGO_URL}" alt="TMN logo" width="64" height="64" style="display:block;border-radius:12px;background:#0a0a0a;padding:5px" /></td>' if EMAIL_LOGO_URL else "")
+        + f'</tr></table></td></tr>'
         f'<tr><td style="padding:18px 0 6px"><span style="font-size:17px;font-weight:bold;color:#0a0a0a">Invoice {escape(str(inv.get("number") or ""))}</span>'
-        f'<span style="float:right;font-size:12px;color:#927428;background:#fcf9f0;border:1px solid #C6A55C;border-radius:10px;padding:3px 10px">{status_label}</span></td></tr>'
+        f'<span style="float:right;font-size:12px;color:#927428;background:#fcf9f0;border:1px solid #C6A55C;border-radius:10px;padding:3px 10px">{status_label}</span></td></tr>' 
         f'<tr><td style="padding:6px 0;color:#555;font-size:14px">Billed to: <strong>{escape(client_name)}</strong>'
         + (f' &lt;{escape(inv.get("client_email") or "")}&gt;' if inv.get("client_email") else "")
         + f'</td></tr>'
@@ -1015,14 +1018,6 @@ async def admin_email_invoice(invoice_id: str, body: InvoiceEmailInput, admin: d
         }]
     email_id = await send_email(to=to, subject=f"Invoice {inv.get('number', '')} from {EMAIL_FROM_NAME}", html=html, attachments=attachments)
     return {"ok": True, "email_id": email_id, "attached": bool(attachments)}
-    text = (
-        f"Invoice {inv.get('number', '')} for £{total:,.2f} has been sent to you — "
-        "open My invoices in your account to view or settle it."
-    )
-    doc = msg_doc(str(inv["customer_id"]), "admin", text, None)
-    result = await db.messages.insert_one(doc)
-    doc["_id"] = result.inserted_id
-    return invoice_public(inv)
 
 
 @api_router.patch("/admin/invoices/{invoice_id}")
@@ -1102,6 +1097,7 @@ EMAIL_BASE_URL = "https://integrations.emergentagent.com"
 EMAIL_KEY = os.environ["EMERGENT_EMAIL_KEY"]
 EMAIL_FROM_NAME = os.environ["EMAIL_FROM_NAME"]
 EMAIL_REPLY_TO = os.environ.get("EMAIL_REPLY_TO")
+EMAIL_LOGO_URL = os.environ.get("LOGO_URL", "")
 
 _SHORTENERS = ("bit.ly", "tinyurl.com", "t.co", "is.gd", "cutt.ly", "goo.gl", "rebrand.ly")
 _CRED_ASK = ("reply with your password", "reply with the code", "send your password", "cvv",

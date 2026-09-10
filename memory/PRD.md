@@ -642,3 +642,12 @@ as a general background with scroll animations. Iterated direction (latest wins)
   letterhead). TESTED: real sends to delivered@resend.dev (email_id + attached:true) via
   curl AND the browser UI with the success flash; download re-verified (TMN-0002.pdf); no
   overflow.
+
+- SESSION 2026-09-11 — LINT FIX + PLAN DEFERRED BY OWNER: removed unreachable dead code
+  after the invoice-email endpoint's return in server.py (referenced an undefined `total`
+  — F821 blocker); zero behaviour change, syntax verified, backend /docs 200. Owner was
+  offered the four Upcoming features (quote-in-chat, VAT & bank details on invoices,
+  favourite colour alerts, live review-profile links) and answered "I will do this
+  later" — nothing new built this session by owner choice. These four remain the
+  priority queue, followed by real project photos (needs owner uploads) and the
+  server.py routers/ split.
