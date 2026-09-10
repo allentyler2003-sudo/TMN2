@@ -260,6 +260,7 @@ export default function Account() {
                     {/* CHAT */}
                     {tab === "Chat" && (
                         <>
+                            <SavedLooks />
                             <div
                                 data-testid="account-chat-thread"
                                 className="h-[60vh] flex-1 space-y-4 overflow-y-auto px-7 py-6"
@@ -280,6 +281,14 @@ export default function Account() {
                                                 : "bg-white text-ink shadow-[0_8px_24px_rgba(10,10,10,0.08)]"
                                         }`}
                                     >
+                                        {m.image && (
+                                            <img
+                                                src={m.image}
+                                                alt="Shared look"
+                                                data-testid="account-chat-image"
+                                                className="mb-2 max-h-64 w-full rounded-xl object-cover"
+                                            />
+                                        )}
                                         <p className="whitespace-pre-wrap break-words text-sm font-medium leading-relaxed">
                                             {m.text}
                                         </p>
@@ -425,6 +434,70 @@ export default function Account() {
                     )}
                 </div>
             </main>
+        </div>
+    );
+}
+function SavedLooks() {
+    const [looks, setLooks] = useState([]);
+    const [loaded, setLoaded] = useState(false);
+    useEffect(() => {
+        axios
+            .get(`${API_BASE}/looks`, { withCredentials: true })
+            .then(({ data }) => {
+                setLooks(data);
+                setLoaded(true);
+            })
+            .catch(() => setLoaded(true));
+    }, []);
+    const remove = async (id) => {
+        try {
+            await axios.delete(`${API_BASE}/looks/${id}`, { withCredentials: true });
+            setLooks((l) => l.filter((x) => x.id !== id));
+        } catch {}
+    };
+    if (!loaded) return null;
+    return (
+        <div className="mx-7 mb-5 rounded-2xl border border-ink/10 bg-white/80 p-5" data-testid="account-looks">
+            <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/60">
+                    My saved looks
+                </p>
+                <a
+                    href="/visualiser"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid="account-looks-open-visualiser"
+                    className="rounded-full border border-ink/25 px-4 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-ink transition-colors hover:border-ink hover:bg-ink hover:text-paper"
+                >
+                    Open visualiser
+                </a>
+            </div>
+            {looks.length === 0 ? (
+                <p className="text-sm font-medium text-ink/55">
+                    No saved looks yet — create one in the colour visualiser and save it to
+                    your account.
+                </p>
+            ) : (
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                    {looks.map((l) => (
+                        <div key={l.id} className="overflow-hidden rounded-xl border border-ink/10" data-testid="account-look-card">
+                            <img src={l.image} alt={l.prompt || "My look"} className="aspect-square w-full object-cover" />
+                            <div className="flex items-center justify-between gap-2 px-2.5 py-2">
+                                <p className="truncate text-[10px] font-bold uppercase tracking-wide text-ink/70">
+                                    {l.prompt || "My look"}
+                                </p>
+                                <button
+                                    onClick={() => remove(l.id)}
+                                    data-testid="account-look-delete"
+                                    className="shrink-0 font-mono text-[9px] font-bold uppercase text-red-700/70 hover:text-red-700"
+                                >
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

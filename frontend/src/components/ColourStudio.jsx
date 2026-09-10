@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "@/context/AuthContext";
 import {
     ChevronsLeftRight, Download, Layers, Mail, Paintbrush, RefreshCw, Share2, Sparkles,
     Upload, Wand2, Undo2, Eraser, Wand, Bookmark, Trash2, X,
@@ -211,6 +213,7 @@ function ColourWheel({ hex, onChange }) {
 }
 
 export default function ColourStudio() {
+    const { user } = useAuth();
     const [image, setImage] = useState(null);
     const [brushSize, setBrushSize] = useState(26);
     const [brand, setBrand] = useState("popular");
@@ -233,6 +236,8 @@ export default function ColourStudio() {
     const [savedLooks, setSavedLooks] = useState(() => loadSavedLooks());
     const [showSaved, setShowSaved] = useState(false);
     const [savedFlash, setSavedFlash] = useState("");
+    const [accountBusy, setAccountBusy] = useState(false);
+    const [accountState, setAccountState] = useState(null);
     const fileRef = useRef(null);
     const canvasRef = useRef(null);
     const imgRef = useRef(null);
@@ -433,6 +438,43 @@ export default function ColourStudio() {
         a.download = "tmn-my-look.jpg";
         a.click();
         window.open(waLink(text + " (I've saved the photo — attaching it here)"), "_blank");
+    };
+
+    const saveToAccount = async () => {
+        if (!result) return;
+        setAccountBusy(true);
+        setAccountState(null);
+        try {
+            await axios.post(
+                `${API_BASE}/looks`,
+                { image: result.image, prompt: result.prompt, sheen },
+                { withCredentials: true, timeout: 60000 }
+            );
+            setAccountState({ ok: true, msg: "Saved to your account — find it in your portal any time." });
+        } catch (err) {
+            setAccountState({ ok: false, msg: err.response?.data?.detail || "Couldn't save — please try again." });
+        } finally {
+            setAccountBusy(false);
+        }
+    };
+
+    const sendToTmn = async () => {
+        if (!result) return;
+        setAccountBusy(true);
+        setAccountState(null);
+        try {
+            const { data: look } = await axios.post(
+                `${API_BASE}/looks`,
+                { image: result.image, prompt: result.prompt, sheen },
+                { withCredentials: true, timeout: 60000 }
+            );
+            await axios.post(`${API_BASE}/looks/${look.id}/send`, {}, { withCredentials: true, timeout: 60000 });
+            setAccountState({ ok: true, msg: "Sent to TMN — we'll reply in your account chat shortly." });
+        } catch (err) {
+            setAccountState({ ok: false, msg: err.response?.data?.detail || "Couldn't send — please try again." });
+        } finally {
+            setAccountBusy(false);
+        }
     };
 
     const sendEmail = async () => {
@@ -813,6 +855,70 @@ export default function ColourStudio() {
                                             Get this look — quote
                                         </a>
                                     </div>
+
+                                    {user ? (
+                                        <div className="rounded-2xl border border-ink/10 bg-white/90 p-5" data-testid="visualiser-account-actions">
+                                            <p className="mb-3 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/60">
+                                                Your account
+                                            </p>
+                                            {accountState && (
+                                                <p
+                                                    className={`mb-3 rounded-xl p-3 text-sm font-medium ${
+                                                        accountState.ok ? "bg-green-50 text-green-800" : "bg-amber-50 text-amber-800"
+                                                    }`}
+                                                    data-testid="visualiser-account-status"
+                                                >
+                                                    {accountState.msg}
+                                                </p>
+                                            )}
+                                            <div className="flex flex-wrap gap-2.5">
+                                                <button
+                                                    data-testid="colour-save-account"
+                                                    onClick={saveToAccount}
+                                                    disabled={accountBusy}
+                                                    className="rounded-full border border-ink/30 px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink transition-colors hover:border-ink hover:bg-ink hover:text-paper disabled:opacity-40"
+                                                >
+                                                    {accountBusy ? "Working…" : "Save to my account"}
+                                                </button>
+                                                <button
+                                                    data-testid="colour-send-chat"
+                                                    onClick={sendToTmn}
+                                                    disabled={accountBusy}
+                                                    className="rounded-full bg-ink px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-paper transition-transform hover:scale-105 active:scale-95 disabled:opacity-40"
+                                                >
+                                                    {accountBusy ? "Working…" : "Send to TMN"}
+                                                </button>
+                                            </div>
+                                            <p className="mt-2 text-[11px] font-medium text-ink/45">
+                                                Signed in as {user.email} — saved looks live in your
+                                                portal; sending lands in our chat with the image.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="rounded-2xl border border-ink/10 bg-ink/[0.03] p-5" data-testid="visualiser-signup-cta">
+                                            <p className="text-sm font-medium leading-relaxed text-ink/70">
+                                                Want to save your looks to an account and send them
+                                                straight to us?{" "}
+                                                <Link
+                                                    to="/login"
+                                                    data-testid="visualiser-signup-link"
+                                                    className="font-bold text-ink underline underline-offset-2"
+                                                >
+                                                    Sign up or log in
+                                                </Link>{" "}
+                                                — it takes a minute. Or just{" "}
+                                                <a
+                                                    href={waLink("Hi TMN — I made a look in your visualiser and I'd like a quote.")}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="font-bold text-ink underline underline-offset-2"
+                                                >
+                                                    ask on WhatsApp
+                                                </a>
+                                                .
+                                            </p>
+                                        </div>
+                                    )}
 
                                     <div className="rounded-2xl border border-ink/10 bg-white/90 p-5">
                                         <p className="mb-3 flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/60">

@@ -79,6 +79,14 @@ export default function ChatTab({ customer }) {
                                 : "bg-white text-ink shadow-[0_8px_24px_rgba(10,10,10,0.08)]"
                         }`}
                     >
+                        {m.image && (
+                            <img
+                                src={m.image}
+                                alt="Shared look"
+                                data-testid="admin-chat-image"
+                                className="mb-2 max-h-64 w-full rounded-xl object-cover"
+                            />
+                        )}
                         <p className="whitespace-pre-wrap break-words text-sm font-medium leading-relaxed">
                             {m.text}
                         </p>

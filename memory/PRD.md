@@ -194,5 +194,16 @@ as a general background with scroll animations. Iterated direction (latest wins)
   colours at once, gloss/silk summary text, save→flash→gallery→reopen, no overflow
   (scrollW 390 = clientW 390).
 
+- ACCOUNT SAVED LOOKS + SEND TO TMN (owner request): signed-in users can "Save to my
+  account" (POST/GET/DELETE /api/looks — saved_looks collection, 24-look cap, owner-only
+  delete) and "Send to TMN" (POST /api/looks/{id}/send → drops the look image into the
+  customer-admin chat + owner email). Messages now support an optional image field;
+  rendered in the Account chat bubbles AND the admin ChatTab. Logged-out visitors see a
+  sign-up CTA (with WhatsApp alternative). Account portal Chat tab shows a "My saved
+  looks" grid (open visualiser link + remove). Verified via full curl journey: register →
+  save → list → send (image in message) → customer chat shows image → admin console sees
+  image → delete. Test account: looktest@tmn-test.co.uk / LookTest123!
+  Saved looks render in: visualiser (device gallery) + Account portal.
+
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.

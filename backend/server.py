@@ -106,8 +106,8 @@ async def require_admin(user: dict = Depends(get_current_user)) -> dict:
     return user
 
 
-def msg_doc(customer_id: str, sender: str, text: str) -> dict:
-    return {
+def msg_doc(customer_id: str, sender: str, text: str, image: str | None = None) -> dict:
+    doc = {
         "customer_id": customer_id,
         "sender": sender,
         "text": text.strip(),
@@ -115,6 +115,9 @@ def msg_doc(customer_id: str, sender: str, text: str) -> dict:
         "read_by_customer": sender == "customer",
         "read_by_admin": sender == "admin",
     }
+    if image:
+        doc["image"] = image
+    return doc
 
 
 def msg_public(doc: dict) -> dict:
@@ -123,6 +126,7 @@ def msg_public(doc: dict) -> dict:
         "customer_id": doc["customer_id"],
         "sender": doc["sender"],
         "text": doc["text"],
+        "image": doc.get("image"),
         "created_at": doc["created_at"],
     }
 
@@ -153,6 +157,7 @@ class LoginInput(BaseModel):
 
 class MessageInput(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
+    image: str | None = Field(default=None, max_length=3000000)
 
 
 class AdminReplyInput(BaseModel):
@@ -259,13 +264,108 @@ async def get_my_messages(user: dict = Depends(get_current_user)):
 
 @api_router.post("/messages")
 async def send_message(input: MessageInput, user: dict = Depends(get_current_user)):
-    doc = msg_doc(str(user["_id"]), "customer", input.text)
+    image = None
+    if input.image:
+        if not input.image.startswith("data:image/"):
+            raise HTTPException(status_code=400, detail="That image could not be read")
+        if len(input.image) > 3000000:
+            raise HTTPException(status_code=400, detail="That image is too large to send — save it and attach it on WhatsApp instead")
+        image = input.image
+    doc = msg_doc(str(user["_id"]), "customer", input.text, image)
     result = await db.messages.insert_one(doc)
     doc["_id"] = result.inserted_id
     await send_owner_email(
         f"New message from {user.get('name', 'a customer')} — TMN website",
         f"<p><b>{user.get('name')}</b> ({user.get('email')}) sent you a message:</p>"
-        f"<p style='white-space:pre-wrap'>{input.text}</p>",
+        f"<p style='white-space:pre-wrap'>{input.text}</p>"
+        + ("<p>(with a colour visualiser image attached — see the admin console)</p>" if image else ""),
+    )
+    return msg_public(doc)
+
+
+# ---------- saved looks (colour visualiser projects) ----------
+
+class LookInput(BaseModel):
+    image: str = Field(min_length=32, max_length=3000000)
+    prompt: str = Field(default="", max_length=300)
+    sheen: str = Field(default="matte", max_length=10)
+
+
+def look_public(doc: dict) -> dict:
+    return {
+        "id": str(doc["_id"]),
+        "image": doc["image"],
+        "prompt": doc["prompt"],
+        "sheen": doc.get("sheen", "matte"),
+        "created_at": doc.get("created_at"),
+    }
+
+
+@api_router.get("/looks")
+async def get_looks(user: dict = Depends(get_current_user)):
+    docs = await db.saved_looks.find({"user_id": str(user["_id"])}).sort("created_at", -1).to_list(50)
+    return [look_public(d) for d in docs]
+
+
+@api_router.post("/looks")
+async def save_look(input: LookInput, user: dict = Depends(get_current_user)):
+    if not input.image.startswith("data:image/"):
+        raise HTTPException(status_code=400, detail="That image could not be read")
+    if len(input.image) > 3000000:
+        raise HTTPException(status_code=400, detail="That image is too large to save — use Save it (download) instead")
+    count = await db.saved_looks.count_documents({"user_id": str(user["_id"])})
+    if count >= 24:
+        raise HTTPException(status_code=400, detail="Your gallery is full (24 looks) — remove an older one first")
+    doc = {
+        "user_id": str(user["_id"]),
+        "image": input.image,
+        "prompt": input.prompt.strip(),
+        "sheen": input.sheen.strip() or "matte",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = await db.saved_looks.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return look_public(doc)
+
+
+@api_router.delete("/looks/{look_id}")
+async def delete_look(look_id: str, user: dict = Depends(get_current_user)):
+    from bson import ObjectId
+
+    try:
+        oid = ObjectId(look_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Look not found")
+    result = await db.saved_looks.delete_one({"_id": oid, "user_id": str(user["_id"])})
+    if not result.deleted_count:
+        raise HTTPException(status_code=404, detail="Look not found")
+    return {"ok": True}
+
+
+@api_router.post("/looks/{look_id}/send")
+async def send_look(look_id: str, user: dict = Depends(get_current_user)):
+    from bson import ObjectId
+
+    try:
+        oid = ObjectId(look_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Look not found")
+    look = await db.saved_looks.find_one({"_id": oid, "user_id": str(user["_id"])})
+    if not look:
+        raise HTTPException(status_code=404, detail="Look not found")
+    sheen = look.get("sheen", "matte")
+    text = (
+        f"Shared from the colour visualiser: {look.get('prompt') or 'my look'}"
+        + (f" — {sheen} finish" if sheen != "matte" else "")
+    )
+    doc = msg_doc(str(user["_id"]), "customer", text, look["image"])
+    result = await db.messages.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    await send_owner_email(
+        f"{user.get('name', 'A customer')} shared a colour look — TMN website",
+        f"<p><b>{user.get('name')}</b> ({user.get('email')}) sent a look from the colour visualiser:</p>"
+        f"<p style='white-space:pre-wrap'>{text}</p>"
+        f"<p><img src='{look['image']}' style='max-width:480px;border-radius:12px'/></p>",
     )
     return msg_public(doc)
 
