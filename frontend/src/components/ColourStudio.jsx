@@ -10,7 +10,7 @@ import { waLink } from "@/constants/site";
 import { FadeUp, EASE } from "@/components/Reveal";
 import {
     recolourLayers, detectWallMask, drawColourWheel, hexToHsv, hsvToHex,
-    hexToRgb, rgbToLab, isValidHex, normaliseHex, makeThumb,
+    hexToRgb, rgbToLab, regionFromPoint, isValidHex, normaliseHex, makeThumb,
 } from "@/lib/colour";
 
 const SWATCHES = [
@@ -252,6 +252,7 @@ export default function ColourStudio() {
     const [image, setImage] = useState(null);
     const [brushSize, setBrushSize] = useState(26);
     const [eraseMode, setEraseMode] = useState(false);
+    const [tapMode, setTapMode] = useState(false);
     const [brand, setBrand] = useState("popular");
     const [activeLayer, setActiveLayer] = useState("walls");
     const [layerColours, setLayerColours] = useState({
@@ -332,6 +333,21 @@ export default function ColourStudio() {
 
     const onPointerDown = (e) => {
         e.preventDefault();
+        if (tapMode && imgRef.current) {
+            // tap-to-select: the tapped surface joins the active layer's mask
+            const pos = getPos(e);
+            const region = regionFromPoint(imgRef.current, pos.x, pos.y, activeLayer);
+            if (!autoMaskRef.current[activeLayer]) {
+                const mc = document.createElement("canvas");
+                mc.width = imgRef.current.naturalWidth;
+                mc.height = imgRef.current.naturalHeight;
+                autoMaskRef.current[activeLayer] = mc;
+            }
+            autoMaskRef.current[activeLayer].getContext("2d").drawImage(region, 0, 0);
+            setAutoDone((s) => ({ ...s, [activeLayer]: true }));
+            redraw();
+            return;
+        }
         drawing.current = true;
         e.target.setPointerCapture?.(e.pointerId);
         strokesRef.current[activeLayer].push({ size: brushSize, points: [getPos(e)], erase: eraseMode });
@@ -688,29 +704,43 @@ export default function ColourStudio() {
                                     <div>
                                         <div className="mb-2 flex items-center justify-between gap-3">
                                             <p className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-ink/55">
-                                                <Paintbrush className="h-3.5 w-3.5" /> {eraseMode ? "Eraser" : "Brush"}
+                                                <Paintbrush className="h-3.5 w-3.5" /> {tapMode ? "Tap select" : eraseMode ? "Eraser" : "Brush"}
                                             </p>
                                             <div className="flex gap-1.5">
                                                 <button
                                                     data-testid="colour-brush-mode-brush"
-                                                    onClick={() => setEraseMode(false)}
+                                                    onClick={() => { setTapMode(false); setEraseMode(false); }}
                                                     className={`rounded-full px-3.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] transition-colors ${
-                                                        !eraseMode ? "bg-ink text-paper" : "border border-ink/25 text-ink/65 hover:border-ink hover:text-ink"
+                                                        !eraseMode && !tapMode ? "bg-ink text-paper" : "border border-ink/25 text-ink/65 hover:border-ink hover:text-ink"
                                                     }`}
                                                 >
                                                     Brush
                                                 </button>
                                                 <button
                                                     data-testid="colour-brush-mode-erase"
-                                                    onClick={() => setEraseMode(true)}
+                                                    onClick={() => { setTapMode(false); setEraseMode(true); }}
                                                     className={`rounded-full px-3.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] transition-colors ${
                                                         eraseMode ? "bg-ink text-paper" : "border border-ink/25 text-ink/65 hover:border-ink hover:text-ink"
                                                     }`}
                                                 >
                                                     Erase
                                                 </button>
+                                                <button
+                                                    data-testid="colour-brush-mode-tap"
+                                                    onClick={() => setTapMode((t) => !t)}
+                                                    className={`rounded-full px-3.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] transition-colors ${
+                                                        tapMode ? "bg-ink text-paper" : "border border-ink/25 text-ink/65 hover:border-ink hover:text-ink"
+                                                    }`}
+                                                >
+                                                    Tap
+                                                </button>
                                             </div>
                                         </div>
+                                        {tapMode && (
+                                            <p className="mt-2 text-[11px] font-medium text-ink/45" data-testid="colour-tap-hint">
+                                                Tap any surface — wall, door, frame or pane — to select the whole area.
+                                            </p>
+                                        )}
                                         <input
                                             data-testid="colour-brush-size"
                                             type="range"

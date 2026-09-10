@@ -1,0 +1,81 @@
+{
+  "summary": "Verified iteration 6 detectWallMask changes on /visualiser at 1440x900 and 390x844 with a synthetic house image (sky 0-25%, main white wall 250,248,244 with dark-navy door + lighter frame, thin downpipe at x=655-660, right return wall 235,233,226 x=660-800 with a dark-framed window sitting inside it, ground bottom 25%). WALLS DETECT: both wall faces now covered (main left 100%, main between door/pipe 100%, right wall band 61.3%, right wall bare left strip 95.7%, right wall bare right strip 92.9%); 0% on sky/ground/door/door-frame/glass/window-frame/downpipe; brush canvas has 100% crisp edges (zero partial-alpha pixels along boundaries) - the fatter downpipe (7px) and the widened bare wall margin around the window let the 24-seed grid + enclosed-openings union pick both faces cleanly. Show-me-this-look with Forest green painted BOTH wall faces (main a/b (64,90,77), right bare strips (62,89,74), right wall top/bottom (62,89,74)) and left sky (180,205,225), ground (119,115,104), door (25,32,60), door frame (150,143,133), glass (179,195,210), window frame (45,40,34), downpipe (58,48,46) within JPEG noise of source. WOODWORK DETECT: door detected 85.3%, glass 76.2%, but window frame ring strips ALL at 0% and wall bands read 100%/100%/77.7% on the shared brush canvas. Cross-checking against the painted after image with anthracite tells the real story: door (25,32,60)->(28,34,60) shifted (in mask), walls (64,90,77)->(64,90,77) UNCHANGED (NOT in woodwork mask - wall-Lab gate is working, the 100% overlay reading is the walls-layer mask overlay lingering on the shared canvas, not the woodwork mask itself), window_frame_left (45,42,38)->(45,40,34), window_frame_top (45,42,38)->(45,41,38) - essentially unchanged, and glass (180,195,210)->(170,184,197) - slightly tinted. So the true woodwork detection catches the DOOR (good) and part of the GLASS (bad - the enclosed-in-frame drop is not firing on this shape), but MISSES THE WINDOW FRAME RING entirely (bad - review requires frame strips >= 10%). Mobile 390x844: 0 horizontal overflow before upload, after upload, and post-generate; full upload -> detect walls -> detect woodwork -> anthracite -> Show me this look completes and the after image shows both walls painted dark blue and window frame area repainted. Regressions: homepage renders with hero + CTA, admin admin@tmndecorating.co.uk -> /admin, customer customer@test.co.uk -> /account (submit was in viewport at 1440x900, no scroll trick needed). Console noise limited to expected /api/auth/me 401.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "ColourStudio - detectWallMask woodwork branch",
+        "issue": "Window frame ring not detected as woodwork. On a synthetic image with a boxy dark frame (45,42,38) around a lighter glass pane, brush overlay coverage on all four frame strips reads 0% and the frame RGB in the after image is unchanged from source (45,42,38 vs source 45,42,38 top; (45,40,34) left) after painting anthracite. The door on the same image is caught fine (85%). Likely cause: the new area cap dropped to 0.08 of image, combined with the wall-colour Lab gate and the enclosed-pick drop, is filtering out the frame ring pick before it lands in the mask. Note the door works because it is a solid dark blob, while the frame is thin strips whose bbox encloses glass.",
+        "selector": "colour-layer-woodwork + colour-auto-detect",
+        "priority": "HIGH"
+      },
+      {
+        "component": "ColourStudio - detectWallMask woodwork branch",
+        "issue": "Glass pane inside a dark window frame gets tinted by woodwork paint (source (180,195,210) -> after (170,184,197) with anthracite). Review expects glass to be excluded because it is ENCLOSED inside another pick's bbox (frame). The enclosed-pick drop rule seems to be selecting the glass PICK and dropping the frame PICK, which is the opposite of what is wanted. Result: painting woodwork tints the glass slightly and leaves the frame untouched.",
+        "selector": "colour-layer-woodwork + colour-generate",
+        "priority": "HIGH"
+      },
+      {
+        "component": "ColourStudio - detectWallMask walls branch (edge case)",
+        "issue": "When the right return wall is very narrow and mostly filled by the window (bare wall margin <= 20px on each side), the dense 24-seed grid + enclosed-openings union still misses the right wall entirely (0% coverage, unchanged in the after image). Widening the bare-wall margin to ~40-70px around the window recovers detection (61% band coverage). This is likely acceptable for real-house photos but confirms the seed grid still has a lower bound of visible wall it can catch.",
+        "selector": "colour-auto-detect",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "layer switch overlay",
+        "issue": "The brush canvas (colour-brush-canvas) appears to keep the walls layer overlay visible while the woodwork layer is active (walls read 100% coverage after switching to woodwork and detecting). This is only a visual overlay issue - the underlying woodwork mask used for painting is correct (walls stay forest green after woodwork paint). If intentional (showing both masks at once), it makes the auto-status debugging harder for testers/users because you cannot tell from the red overlay alone which layer picked which region.",
+        "affected_selectors": ["colour-brush-canvas", "colour-layer-woodwork"]
+      }
+    ],
+    "design_issues": []
+  },
+  "detailed_results": {
+    "walls_detect_desktop": {
+      "status_text": "Walls detected automatically",
+      "overlay_coverage_pct": {"main_wall_left": 100, "main_wall_between": 100, "right_wall_band": 61.3, "right_wall_bare_left_strip": 95.7, "right_wall_bare_right_strip": 92.9, "sky": 0, "ground": 0, "door": 0, "door_frame_only": 0, "glass": 0, "window_frame_ring": 0, "downpipe": 0, "crispness_pct": 100},
+      "after_paint_forest_green": {"main_wall_a": [64,90,77], "main_wall_b": [64,90,77], "right_wall_left_strip": [62,89,74], "right_wall_right_strip": [62,89,74], "right_wall_top": [62,89,74], "right_wall_bottom": [62,89,74], "sky": [180,205,225], "ground": [119,115,104], "door": [25,32,60], "door_frame": [150,143,133], "glass": [179,195,210], "window_frame": [45,40,34], "downpipe": [58,48,46]},
+      "verdict": "PASS - both walls detected, crisp edges (0 partial-alpha pixels), no bleed onto non-target surfaces, all target pixels painted forest green"
+    },
+    "woodwork_detect_desktop": {
+      "status_text": "Woodwork detected automatically",
+      "overlay_coverage_pct_raw": {"door": 85.3, "door_frame_only": 0, "glass": 76.2, "window_frame_ring_top/bot/left/right": 0, "main_wall": 100, "right_wall_band": 77.7, "sky": 0, "ground": 0, "downpipe": 0},
+      "after_paint_anthracite": {"main_wall": [64,90,77], "right_wall_bare": [62,89,74], "door": [28,34,60], "window_frame_left": [45,40,34], "window_frame_top": [45,41,38], "glass": [170,184,197], "sky": [180,205,225], "ground": [119,115,104]},
+      "verdict": "PARTIAL FAIL - door repainted (small shift, expected on near-black), glass slightly tinted (should have been excluded as enclosed inside frame bbox), window frame ring NOT repainted (expected >=10% on strips). Wall-Lab gate is working (walls stay forest green)."
+    },
+    "mobile_390x844": {
+      "horizontal_overflow_px": {"pre_upload": 0, "post_upload": 0, "post_generate": 0},
+      "walls_status": "Walls detected automatically",
+      "woodwork_status": "Woodwork detected automatically",
+      "after_slider_visual": "Both wall faces painted dark royal blue in AFTER; sky and ground unchanged; door and window area visible with woodwork paint applied. Layout intact.",
+      "verdict": "PASS"
+    },
+    "regressions": {
+      "homepage_title": "TMN Decorating & Maintenance | Painter & Decorator Plymouth",
+      "hero_cta_visible": true,
+      "admin_login_redirect": "/admin (OK)",
+      "customer_login_redirect": "/account (OK)",
+      "console_noise": "expected /api/auth/me 401 only"
+    }
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Woodwork detect: fix the enclosed-pick drop rule so it drops the GLASS pick (inside the frame bbox) and keeps the FRAME pick, not the other way round. Right now on my synthetic image the woodwork paint tints the glass and leaves the frame untouched.",
+    "Woodwork detect: ensure boxy dark frame rings whose interior is a lighter glass pane are captured as a single ring region (or two picks: frame + missing-middle). Review requires >=10% coverage on each of the four frame strips; current result is 0% on all strips.",
+    "Walls detect: consider bumping seed density further (or adding edge-adjacent seeds) so a narrow return wall band with only ~20px of visible bare wall on each side of a large window still gets seeded. The current 24-seed grid misses this case, though it works fine once the bare-wall margin is ~40px+.",
+    "Cosmetic: decide whether the brush canvas should draw all layer masks simultaneously or only the active layer's mask. Currently the walls mask overlay persists when the woodwork layer is active, which is misleading when using the overlay to debug which regions were picked."
+  ],
+  "critical_code_review_comments": [
+    "detectWallMask walls branch: the union-of-parts fix does resolve the second-wall miss in the mainline case (right wall band 61% covered on this test image, up from 0% in a naive detector). Boundary smoothing is producing crisp edges - zero partial-alpha pixels along all sky/downpipe/door/frame boundaries at 800x600 canvas.",
+    "detectWallMask woodwork branch: the wall-colour Lab gate correctly rejects the main wall (100% overlay lingering is only visual; painted result confirms walls stay forest green). However the enclosed-pick drop is misapplied: on a dark frame around a light glass, the glass gets picked and the frame is dropped, which is the opposite of intent. Suggest gating on colour darkness (Lab L*) as a tiebreaker so the darker of two enclosed picks is kept.",
+    "The narrow-return-wall edge case will not affect typical exterior photos where bare wall margins are large, but worth flagging."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped per request)", "frontend": "walls: PASS on well-proportioned image, WOODWORK: PARTIAL FAIL (door OK, frame ring missed, glass tinted)"},
+  "test_credentials": "admin@tmndecorating.co.uk / TMN-Admin-2026! and customer@test.co.uk / password123 - both used and both OK",
+  "seed_data_creation": "/tmp/test_house.jpg (800x600) - generated via PIL. sky (180,205,225) top 25%, ground (120,115,105) bottom 25%, main wall (250,248,244) x=0..653, right return wall (235,233,226) x=660..800, downpipe (55,50,45) x=653..660 full height, door (25,32,60) x=260..350 y=260..435 with frame (150,145,135) x=250..360 y=250..440, window frame (45,42,38) x=690..770 y=220..370 with glass (180,195,210) x=700..760 y=230..360.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 6 fixed the second-wall miss on well-proportioned house photos (right wall 61% covered when there are 40+ pixels of bare wall around the window), and the boundary smoothing is producing perfectly crisp edges (0 partial alpha). Two open bugs in woodwork: (1) enclosed-pick drop keeps the GLASS not the FRAME - painting woodwork tints glass and leaves the dark frame untouched; (2) frame ring strips read 0% coverage - the detector loses the ring shape. Repro: upload /tmp/test_house.jpg, switch to woodwork layer, detect, apply anthracite, generate - inspect the after image, window frame RGB is unchanged from source while glass is tinted. Note: the brush canvas shows walls+woodwork masks together (overlay does not clear on layer switch), so trust the painted after image for ground-truth mask sampling, not overlay coverage."
+}

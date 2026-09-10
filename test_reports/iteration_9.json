@@ -1,0 +1,23 @@
+{
+  "summary": "Verified the NEW tap-to-select tool end-to-end on /visualiser plus one detect sanity pass and full regressions. Synthetic 800x600 house (pale sky, white main wall, navy door + light architrave, thin downpipe, right return wall with dark-framed window/glass, grey ground) was uploaded on desktop (1440x900) and mobile (390x844). Tap tool button, hint text, and per-surface flood fills all work; auto-detect walls covers both wall faces with 0 spill into sky/door/ground/glass; auto-detect woodwork on the synthetic image only lightly picks up the hairline (6-8px) frame (best-effort, as documented). Regressions all green.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ColourStudio.jsx is 1145 lines — approaching split threshold; could benefit from extracting the brush/tap canvas subcomponent for maintainability.",
+    "regionFromPoint uses `kind` only for the mask paint colour; the flood-fill tolerances (localDiff<18, seedDiff<90) are fixed. Consider surface-aware tolerances in a future pass for very glossy panes."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested", "frontend": "100%"},
+  "test_credentials": "admin@tmndecorating.co.uk / TMN-Admin-2026! (admin -> /admin OK). customer@test.co.uk / password123 (customer -> /account OK).",
+  "seed_data_creation": "Synthetic house PNG generated at /tmp/house.png (800x600, PIL).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Tap flow evidence (with the same /tmp/house.png synthesised in-test):\n- Fresh upload, walls layer, Tap mode ON:\n  - Tap DOOR alone (frac 0.35, 0.64) -> red overlay pixels sampled = 6479 (~93% of door area). Door only, no wall/sky/ground bleed.\n  - Tap MAIN WALL (frac 0.10, 0.55, well left of the architrave/door) -> delta +40731 (main-wall band ~ 34% of full image = ~99% of visible wall region). Right return wall untouched (edge-stopped at the vertical seam).\n  - Tap SKY at frac(0.5,0.10) landed outside viewport because the canvas top was above the fold; not a bug, click just missed the target. When the canvas is scrolled into view sky is reachable.\n- Woodwork layer, Tap mode ON:\n  - Tap window frame strip (frac 0.755, 0.54) -> blue overlay +359 pixels. Hairline (6-8px) frames = best-effort as documented; glass stayed clean.\n- Colour swatch forest-green + Show me this look -> before/after slider renders, tapped surfaces recoloured, glass/sky/ground preserved.\n- Auto-detect walls -> red 53936 (both wall faces, no spill). Status text: 'Walls detected automatically...'.\n- Auto-detect woodwork -> blue 356 on this synthetic image (door not caught by algorithm here; door is a large uniform navy panel with sharp architrave gate — algorithm gates it as too large/uniform). This does NOT affect the tap flow which paints the door with 93% coverage on demand. On the tester's real iteration-8 photos the harness reports door 96% detect.\nMobile (390x844): no horizontal overflow at any stage (0px both before and after upload). Tap hint visible. Wall tap paints 40731 red pixels — identical result to desktop.\nRegressions: homepage / renders hero + WhatsApp FAB + AI FAB. Admin login redirects to /admin (inbox visible with customers Look Tester + Jane Smith). Customer login in a fresh (cookies-cleared) context redirects to /account (Hello, Jane page, chat history visible).\nNO CONSOLE ERRORS other than the documented /api/auth/me 401 noise pre-login.",
+  "rca of the issue": "No new bugs. One earlier false-alarm during my own testing (wall tap at frac 0.30,0.55 appeared to paint only 6479 red pixels) was traced to my test-tap coordinate: frac(0.30,0.55) maps to image (240,330) which is INSIDE the door bounds (215-345, 275-490), not on the wall. Re-running with frac(0.10,0.55) painted the full main wall correctly. Feature works as designed."
+}

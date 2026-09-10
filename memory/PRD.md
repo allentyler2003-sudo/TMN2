@@ -282,7 +282,28 @@ as a general background with scroll animations. Iterated direction (latest wins)
   palettes, Lab-nearest fallback for custom hexes); tap applies to the woodwork layer.
   Testing agent: all 7 trios exact, tap updates woodwork dot, no mobile overflow.
 
-- DETECT REFINEMENTS FROM THE OWNER'S REAL HOUSE PHOTO (owner: colour is perfect, but
+- OWNER DIRECTIVE — GENERALITY FOR ANY VISITOR PHOTO (2026-09-10): the colour tools
+  must work for ANY uploaded image (exteriors, rooms, kitchens), never tuned to one
+  photo. Delivered: (1) NEW TAP-TO-SELECT — colour.js regionFromPoint(img, xFrac,
+  yFrac, kind) grows the region under the visitor's tap with the same edge-aware fill
+  (localDiff 18, seedDiff 90, 2 hole-fill rounds, sharpened upscale); ColourStudio has
+  a third tool "Tap" (data-testid colour-brush-mode-tap + colour-tap-hint) beside
+  Brush/Erase — ANY surface (wall, door, frame, kitchen unit, ceiling) on ANY image is
+  selectable by tap; (2) the woodwork gates REWRITTEN as ONE per-pick stats pass
+  (fixing a chained-filter index bug that mislabelled doors as glass using stale Lab
+  lookups): not-the-wall-colour (Lab > 12), not-a-sky-reflecting-pane (b-r > 12 AND
+  L >= 50), not-a-pane-enclosed-by-a-ring (dark doors inside architraves survive);
+  (3) multi-scale woodwork analysis: edge map at half scale (384, thick boundary
+  lines, grain averaged away) + shape analysis at 768 (thin frames stay solid) +
+  colour-constrained dilation (thickens hairline rings within their own colour).
+  VERIFIED: harness 7/7 IDENTICAL across 3 runs (deterministic); on the tester's exact
+  colours: WALLS main 89% + right 55% + glass/pipe/door 0%; WOOD door 96%, walls 0%,
+  glass 0%; testing agent iteration_9: tap door = 93% coverage no bleed, tap wall =
+  99% of the region, frame tap = overlay with clean glass, mobile identical, 0
+  overflow, all logins green, 100% pass. KNOWN LIMITS: hairline (<=7px) frames and
+  low-contrast skirting stay best-effort — one tap selects them on demand.
+
+- DETECT REFINEMENTS FROM THE OWNER'S REAL HOUSE PHOTO (owner: the colour is perfect, but
   edges could be sharper next to trims/windows/doors; auto-detect missed one white
   wall; trim detect missed one window) — FOUR detectWallMask upgrades in colour.js:
   (1) SHARPER EDGES: analysis resolution 160→256 + the upscaled mask is re-binarized
