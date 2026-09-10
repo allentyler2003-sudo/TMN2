@@ -1,0 +1,293 @@
+/* ---------- outline type ---------- */
+.text-outline {
+    -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.9);
+    color: transparent;
+}
+.text-outline-faint {
+    -webkit-text-stroke: 1px rgba(10, 10, 10, 0.55);
+    color: transparent;
+}
+.text-outline-ink {
+    -webkit-text-stroke: 1.5px rgba(10, 10, 10, 0.9);
+    color: transparent;
+}
+
+/* ---------- film grain ---------- */
+.grain::before {
+    content: "";
+    position: fixed;
+    inset: -50%;
+    z-index: 70;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 250 250' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.05;
+    animation: grain-shift 0.9s steps(4) infinite;
+}
+@keyframes grain-shift {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-2%, 3%); }
+    50% { transform: translate(3%, -2%); }
+    75% { transform: translate(-3%, -3%); }
+    100% { transform: translate(2%, 2%); }
+}
+
+/* ---------- marquee ---------- */
+@keyframes marquee-x {
+    to {
+        transform: translateX(-50%);
+    }
+}
+.animate-marquee {
+    animation: marquee-x 32s linear infinite;
+}
+.marquee-mask {
+    mask-image: linear-gradient(
+        to right,
+        transparent,
+        black 8%,
+        black 92%,
+        transparent
+    );
+}
+
+/* ---------- custom cursor ---------- */
+@media (pointer: fine) {
+    body.cursor-ready,
+    body.cursor-ready a,
+    body.cursor-ready button,
+    body.cursor-ready textarea,
+    body.cursor-ready [data-cursor] {
+        cursor: none;
+    }
+}
+.cursor-dot,
+.cursor-ring {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 90;
+    pointer-events: none;
+    border-radius: 9999px;
+}
+.cursor-dot {
+    width: 6px;
+    height: 6px;
+    margin: -3px 0 0 -3px;
+    background: #fff;
+    mix-blend-mode: difference;
+}
+.cursor-ring {
+    width: 36px;
+    height: 36px;
+    margin: -18px 0 0 -18px;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    mix-blend-mode: difference;
+    transition: width 0.25s ease, height 0.25s ease, margin 0.25s ease;
+}
+
+/* ---------- underline link sweep ---------- */
+.link-sweep {
+    position: relative;
+}
+.link-sweep::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    height: 1px;
+    width: 100%;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.link-sweep:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+}
+
+/* ---------- holo fallback (if video autoplay is blocked) ---------- */
+.holo-fallback {
+    background: linear-gradient(
+        120deg,
+        #e9e7f9,
+        #d9f0ee,
+        #f9e9e2,
+        #e3ecf9,
+        #efe6f6,
+        #e9e7f9
+    );
+    background-size: 300% 300%;
+    animation: holo-drift 18s ease-in-out infinite;
+}
+@keyframes holo-drift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* ---------- elegant white halo ring (thin, shimmering, slow) ---------- */
+.halo-ring {
+    border: 2.5px solid rgba(255, 255, 255, 1);
+    box-shadow:
+        0 0 18px 3px rgba(255, 255, 255, 0.9),
+        0 0 42px 10px rgba(228, 230, 255, 0.55);
+    animation: halo-breathe 8s ease-in-out infinite;
+}
+.halo-shimmer {
+    background: conic-gradient(
+        from 0deg,
+        #ffffff,
+        #f1f2ff,
+        #eef6ff,
+        #fdf0f8,
+        #f0fdf6,
+        #fffff4,
+        #ffffff
+    );
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), black calc(100% - 4.5px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 5px), black calc(100% - 4.5px));
+    filter: blur(0.6px);
+    opacity: 0.7;
+    animation: shimmer-drift 36s linear infinite, halo-breathe 8s ease-in-out infinite;
+}
+/* ---------- glossy glass header ---------- */
+.nav-glass {
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.92) 0%,
+        rgba(250, 249, 246, 0.7) 38%,
+        rgba(245, 244, 240, 0.58) 62%,
+        rgba(253, 252, 250, 0.8) 100%
+    );
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.55),
+        0 1px 0 rgba(10, 10, 10, 0.05);
+}
+.nav-glass-scrolled {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.55),
+        0 1px 0 rgba(10, 10, 10, 0.08),
+        0 18px 45px rgba(10, 10, 10, 0.1);
+}
+
+/* ---------- iridescent rainbow holofoil halo ---------- */
+.halo-iridescent {
+    background: conic-gradient(
+        from 20deg,
+        #ffffff,
+        #cdd4ff,
+        #ffffff,
+        #b5e2ff,
+        #ffffff,
+        #ffc9e5,
+        #ffffff,
+        #c2f2dd,
+        #fffbe8,
+        #ffffff
+    );
+    -webkit-mask: radial-gradient(
+        farthest-side,
+        transparent 0 84%,
+        rgba(0, 0, 0, 0.45) 91%,
+        rgba(0, 0, 0, 0.95) 96%,
+        rgba(0, 0, 0, 0.45) 99%,
+        transparent 100%
+    );
+    mask: radial-gradient(
+        farthest-side,
+        transparent 0 84%,
+        rgba(0, 0, 0, 0.45) 91%,
+        rgba(0, 0, 0, 0.95) 96%,
+        rgba(0, 0, 0, 0.45) 99%,
+        transparent 100%
+    );
+    animation: shimmer-drift 30s linear infinite, halo-breathe 8s ease-in-out infinite;
+}
+@keyframes halo-breathe {
+    0%,
+    100% {
+        opacity: 0.55;
+    }
+    50% {
+        opacity: 0.95;
+    }
+}
+@keyframes halo-breathe-soft {
+    0%,
+    100% {
+        opacity: 0.2;
+    }
+    50% {
+        opacity: 0.55;
+    }
+}
+@keyframes shimmer-drift {
+    to {
+        transform: rotate(360deg);
+    }
+}
+.glass-sheen {
+    animation: sheen-sweep 7s ease-in-out infinite;
+    transform: translateX(-140%) rotate(10deg);
+}
+/* periodic glint across the badge — circularly masked, opacity-only (Android-safe) */
+.badge-glint {
+    border-radius: 12.5%;
+    background: linear-gradient(
+        115deg,
+        transparent 32%,
+        rgba(255, 255, 255, 0.9) 47%,
+        rgba(255, 255, 255, 0.35) 54%,
+        transparent 66%
+    );
+    opacity: 0;
+    animation: badge-glint 7s ease-in-out infinite;
+}
+@keyframes badge-glint {
+    0%,
+    55% {
+        opacity: 0;
+    }
+    72% {
+        opacity: 0.95;
+    }
+    86%,
+    100% {
+        opacity: 0;
+    }
+}
+@keyframes spin-360 {
+    to {
+        transform: rotate(360deg);
+    }
+}
+@keyframes glow-breathe {
+    0%,
+    100% {
+        opacity: 0.55;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.9;
+        transform: scale(1.05);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-marquee {
+        animation: none;
+    }
+    .grain::before {
+        animation: none;
+    }
+    .holo-fallback {
+        animation: none;
+    }
+    .halo-ring,
+    .badge-glint {
+        animation: none;
+    }
+}

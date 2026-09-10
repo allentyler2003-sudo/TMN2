@@ -683,23 +683,3 @@ as a general background with scroll animations. Iterated direction (latest wins)
   cleanup). NOTE: invoices emailed BEFORE this fix keep the dead link in the recipient's
   inbox — re-sending the invoice email refreshes the stored file + token and delivers a
   working button (upsert by invoice id).
-
-- FULL PROJECT BACKUP EXPORTED (2026-09-11, owner leaving-Emergent insurance): complete
-  source ZIP at /app/frontend/public/tmn-website-backup-2026-09-11.zip (29MB, download:
-  https://paint-property-pro.preview.emergentagent.com/tmn-website-backup-2026-09-11.zip).
-  Contents: frontend/ (all src, pages, components, colour engine, invoicePdf, public/
-  videos+logos+favicon, configs, yarn.lock — NO node_modules), backend/ (server.py,
-  ai_local.py, ai_worker.py, tests, requirements, .env.example — NO secrets), scripts/,
-  docs/PRD.md, database/ (mongodump binary + per-collection JSON + RESTORE.md; DB name
-  test_database; users hold bcrypt hashes only), README.md (install/build/production/
-  docker-compose + nginx, env-var tables, hosting requirements incl. 8GB RAM note for
-  local AI, Stripe webhook /api/stripe/webhook setup), Dockerfiles + nginx.conf +
-  docker-compose.yml for one-command self-hosting. HONEST dependency notes inside:
-  client transactional email = Emergent-managed proxy (EMERGENT_EMAIL_KEY dies off-
-  platform; README §6 has a drop-in Resend replacement for send_email); owner
-  notification emails already self-hosted via RESEND_API_KEY; Stripe = own account keys
-  (sandbox now); AI chat fully local (Qwen2.5-0.5B); colour visualiser fully client-side;
-  EMERGENT_LLM_KEY/GEMINI_API_KEY legacy-unused. Verified: zip integrity clean, 192
-  files (220 entries incl. dirs), zero node_modules/.env/.git/test_credentials inside,
-  server.py md5-identical to live, download link 200 application/zip. Staging kept at
-  /app/backup_staging/.
