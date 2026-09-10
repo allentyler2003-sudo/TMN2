@@ -15,10 +15,11 @@ import Footer from "@/components/Footer";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import AiChat from "@/components/AiChat";
 import HomeMusic from "@/components/HomeMusic";
-import ColourStudio from "@/components/ColourStudio";
+import ColourTeaser from "@/components/ColourTeaser";
 import Login from "@/pages/Login";
 import Account from "@/pages/Account";
 import Admin from "@/pages/Admin";
+import Visualiser from "@/pages/Visualiser";
 
 class ErrorBoundary extends Component {
     constructor(props) {
@@ -136,7 +137,7 @@ function Site() {
                 <main>
                     <Hero />
                     <Marquee />
-                    <ColourStudio />
+                    <ColourTeaser />
                     <Services />
                     <Work />
                     <About />
@@ -176,6 +177,7 @@ function App() {
                     <ScrollToTop />
                     <Routes>
                         <Route path="/" element={<Site />} />
+                        <Route path="/visualiser" element={<Visualiser />} />
                         <Route path="/login" element={<Login />} />
                         <Route
                             path="/account"

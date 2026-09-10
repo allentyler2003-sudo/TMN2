@@ -154,5 +154,12 @@ as a general background with scroll animations. Iterated direction (latest wins)
   Backend colour-generation endpoints removed; ai_worker/ai_local now chat-only
   (Qwen2.5-0.5B local, ~25-55s per reply through the public URL, streamed).
 
+- VISUALISER TO ITS OWN TAB (user request): homepage section replaced by a compact dark
+  CTA card (id="colours" kept → nav anchor works) with gold "Open the visualiser" button
+  opening /visualiser in a NEW TAB; new page /pages/Visualiser.jsx = top bar (Back to site
+  / TMN logo / Get a quote) + full ColourStudio + footer note. Verified: button target=_blank
+  ✓, /visualiser full brush flow E2E ✓ (instant blue repaint visible in slider), desktop +
+  mobile, no overflow. Homepage space reclaimed.
+
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.
