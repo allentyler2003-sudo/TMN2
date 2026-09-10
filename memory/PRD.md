@@ -205,5 +205,15 @@ as a general background with scroll animations. Iterated direction (latest wins)
   image → delete. Test account: looktest@tmn-test.co.uk / LookTest123!
   Saved looks render in: visualiser (device gallery) + Account portal.
 
+- AUTO-DETECT EDGE-TO-EDGE FIX (user: real exterior left white patches at corners/shadows
+  and speckles): wall detection now (1) smooths the photo with a 3x3 box blur, (2) grows
+  the region with LOCAL gradient acceptance (walks smooth shading gradients and corners
+  right to the wall's true edges — door/window frames still block it), (3) runs 3 rounds
+  of hole-filling + speckle removal. Fixed a critical buffer-size bug found in testing
+  (RGBA-indexed buffer was 1/4 size → detection died below row 30). Verified on a harsh
+  synthetic case (95-shade wall gradient + 700 speckles + door): mask covers bright end,
+  dark corner AND speckles (230), excludes floor/door (0); recolour lands blue across the
+  whole wall with original shading preserved, floor untouched.
+
 ## Backlog
 - P0: Replace gallery stock with real TMN project photos when provided.

@@ -258,7 +258,27 @@ export function detectWallMask(img, kind = "walls") {
         return null; // nothing woodwork-like found — caller falls back to brushing
     }
 
-    // walls: seed-based flood fill, sky rejected
+    // walls: region growing from upper-middle seeds. Acceptance is LOCAL (walks
+    // smooth shading gradients right to the wall's true edges) with hole-filling
+    // afterwards so textured render never leaves speckles.
+    const smooth = new Float32Array(W * H * 4);
+    for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+            const i = y * W + x;
+            let r = 0, g = 0, b = 0, n = 0;
+            for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) {
+                const nx = x + dx, ny = y + dy;
+                if (nx >= 0 && nx < W && ny >= 0 && ny < H) {
+                    const p = ny * W + nx;
+                    r += d[p * 4]; g += d[p * 4 + 1]; b += d[p * 4 + 2];
+                    n++;
+                }
+            }
+            smooth[i * 4] = r / n;
+            smooth[i * 4 + 1] = g / n;
+            smooth[i * 4 + 2] = b / n;
+        }
+    }
     const seeds = [];
     for (const fy of [0.2, 0.32, 0.44]) {
         for (const fx of [0.3, 0.5, 0.7]) {
@@ -273,8 +293,8 @@ export function detectWallMask(img, kind = "walls") {
             const x = p % W;
             const y = (p - x) / W;
             if (y < H * 0.06) touchesTop = true;
-            sumR += d[p * 4];
-            sumB += d[p * 4 + 2];
+            sumR += smooth[p * 4];
+            sumB += smooth[p * 4 + 2];
         }
         return touchesTop && sumB / comp.length > sumR / comp.length + 12;
     };
@@ -283,7 +303,6 @@ export function detectWallMask(img, kind = "walls") {
     const minArea = 0.1 * W * H;
     for (const [seed] of seeds) {
         if (seen[seed]) continue;
-        const ref = pix(seed);
         const comp = [];
         const local = new Uint8Array(W * H);
         const q = [seed];
@@ -301,8 +320,16 @@ export function detectWallMask(img, kind = "walls") {
                 if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
                 const ni = ny * W + nx;
                 if (local[ni] || seen[ni]) continue;
-                const [r, g, b] = pix(ni);
-                if (Math.abs(r - ref[0]) <= 26 && Math.abs(g - ref[1]) <= 26 && Math.abs(b - ref[2]) <= 26) {
+                // walk smooth gradients (shadows, corners) but stop at real edges
+                const localDiff =
+                    Math.abs(smooth[ni * 4] - smooth[cur * 4]) +
+                    Math.abs(smooth[ni * 4 + 1] - smooth[cur * 4 + 1]) +
+                    Math.abs(smooth[ni * 4 + 2] - smooth[cur * 4 + 2]);
+                const seedDiff =
+                    Math.abs(smooth[ni * 4] - smooth[seed * 4]) +
+                    Math.abs(smooth[ni * 4 + 1] - smooth[seed * 4 + 1]) +
+                    Math.abs(smooth[ni * 4 + 2] - smooth[seed * 4 + 2]);
+                if (localDiff < 36 || seedDiff < 60) {
                     local[ni] = 1;
                     q.push(ni);
                 }
@@ -313,6 +340,37 @@ export function detectWallMask(img, kind = "walls") {
         if (comp.length < minArea) continue;
         if (isSky(comp)) continue;
         if (!best || comp.length > best.length) best = comp;
+    }
+
+    if (best) {
+        // hole-fill + speckle removal: a pixel joins if the wall surrounds it,
+        // and drops out if it's an isolated dot inside the region
+        const inMask = new Uint8Array(W * H);
+        for (const p of best) inMask[p] = 1;
+        for (let pass = 0; pass < 3; pass++) {
+            const changes = [];
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const i = y * W + x;
+                    let neighbours = 0;
+                    let total = 0;
+                    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
+                        const nx = x + dx, ny = y + dy;
+                        if (nx >= 0 && nx < W && ny >= 0 && ny < H) {
+                            total++;
+                            if (inMask[ny * W + nx]) neighbours++;
+                        }
+                    }
+                    if (total && (inMask[i] ? neighbours < 3 : neighbours > total * 0.72)) {
+                        changes.push([i, !inMask[i]]);
+                    }
+                }
+            }
+            if (!changes.length) break;
+            for (const [i, val] of changes) inMask[i] = val ? 1 : 0;
+        }
+        best = [];
+        for (let i = 0; i < W * H; i++) if (inMask[i]) best.push(i);
     }
 
     if (best) {
