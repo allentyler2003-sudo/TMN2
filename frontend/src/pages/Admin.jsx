@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Archive, ArchiveRestore, Check, Pencil, Pin, ReceiptText, Trash2, X } from "lucide-react";
+import { Archive, ArchiveRestore, Check, Pencil, Pin, ReceiptText, Search, Trash2, X } from "lucide-react";
 import { API_BASE, formatApiError, useAuth } from "@/context/AuthContext";
 import ChatTab from "@/components/admin/ChatTab";
 import JobsTab from "@/components/admin/JobsTab";
@@ -25,6 +25,8 @@ export default function Admin() {
     const [nameDraft, setNameDraft] = useState("");
     const [favourites, setFavourites] = useState(null);
     const [showArchived, setShowArchived] = useState(false);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [clientQuery, setClientQuery] = useState("");
     const [deleteArmedId, setDeleteArmedId] = useState(null);
 
     const loadCustomers = async () => {
@@ -241,7 +243,43 @@ export default function Admin() {
                                 >
                                     <ReceiptText className="h-3.5 w-3.5" /> Invoices
                                 </button>
+                                <button
+                                    data-testid="admin-toggle-archived-pill"
+                                    onClick={() => setShowArchived((s) => !s)}
+                                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-ink/30 px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.08em] text-ink transition-colors duration-300 hover:border-ink hover:bg-ink hover:text-paper sm:gap-2 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-[0.15em]"
+                                >
+                                    <Archive className="h-3.5 w-3.5" />
+                                    {showArchived ? `Hide archived (${customers.filter((c) => c.archived).length})` : `Archived (${customers.filter((c) => c.archived).length})`}
+                                </button>
+                                <button
+                                    data-testid="admin-client-search-toggle"
+                                    onClick={() => setSearchOpen((s) => {
+                                        if (s) setClientQuery("");
+                                        return !s;
+                                    })}
+                                    title="Search clients by name or email"
+                                    className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.08em] transition-colors duration-300 sm:gap-2 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-[0.15em] ${
+                                        searchOpen ? "border-ink bg-ink text-paper" : "border-ink/30 text-ink hover:border-ink hover:bg-ink hover:text-paper"
+                                    }`}
+                                >
+                                    <Search className="h-3.5 w-3.5" />
+                                    <span className="hidden sm:inline">Search</span>
+                                </button>
                             </div>
+                            {searchOpen && (
+                                <div className="mb-5">
+                                    <label className="relative block">
+                                        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
+                                        <input
+                                            data-testid="admin-client-search"
+                                            placeholder="Search clients by name or email…"
+                                            value={clientQuery}
+                                            onChange={(e) => setClientQuery(e.target.value)}
+                                            className="w-full rounded-full border border-ink/20 bg-white/85 py-3 pl-11 pr-4 text-sm font-medium backdrop-blur-sm"
+                                        />
+                                    </label>
+                                </div>
+                            )}
                         </div>
 
                         {error && <p className="mb-6 text-sm font-medium text-red-700">{error}</p>}
@@ -249,24 +287,12 @@ export default function Admin() {
                         <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
                             {/* customer list */}
                             <div className="max-h-[65vh] space-y-3 overflow-y-auto rounded-3xl border border-ink/10 bg-white/85 p-4">
-                                {customers.some((c) => c.archived) && (
-                                    <button
-                                        data-testid="admin-toggle-archived"
-                                        onClick={() => setShowArchived((s) => !s)}
-                                        className={`w-full rounded-xl px-3 py-2 font-mono text-[9px] font-bold uppercase tracking-[0.15em] transition-colors ${
-                                            showArchived ? "bg-ink text-paper" : "border border-ink/20 text-ink/60 hover:border-ink hover:text-ink"
-                                        }`}
-                                    >
-                                        <Archive className="mr-1.5 inline h-3 w-3" />
-                                        {showArchived ? "Hiding archived" : `Show archived (${customers.filter((c) => c.archived).length})`}
-                                    </button>
-                                )}
-                                {customers.filter((c) => showArchived || !c.archived).length === 0 && (
+                                {customers.filter((c) => showArchived || !c.archived).filter((c) => `${c.name} ${c.email}`.toLowerCase().includes(clientQuery.trim().toLowerCase())).length === 0 && (
                                     <p className="p-6 text-center text-sm font-medium text-ink/55">
                                         No customers have registered yet.
                                     </p>
                                 )}
-                                {customers.filter((c) => showArchived || !c.archived).map((c) => (
+                                {customers.filter((c) => showArchived || !c.archived).filter((c) => `${c.name} ${c.email}`.toLowerCase().includes(clientQuery.trim().toLowerCase())).map((c) => (
                                     <div
                                         key={c.id}
                                         role="button"

@@ -600,3 +600,13 @@ as a general background with scroll animations. Iterated direction (latest wins)
   rows show Restore + Delete). (3) archiving/removing test state left clean (Jane active).
   TESTED in browser: no bin on active rows PASS, select-client no auto-scroll PASS
   (scrollY 0), archive menu shows restore + full-delete PASS, restore PASS, no overflow.
+
+- OWNER: ARCHIVE + SEARCH PILLS NEXT TO THE INVOICES BUTTON (2026-09-10) — "archive view
+  button and search button to the right of the invoice button". DONE: the Show-archived
+  toggle moved OUT of the client list into the pills row as a pill (Archive icon + live
+  count, right of INVOICES) and a SEARCH pill added next to it — opens an inline input
+  filtering clients by name/email; closing the search clears the query (fixed a bug where
+  the list stayed stuck on "No customers"); also fixed a crash from a missing Search icon
+  import. TESTED: pill order (unread → invoices → archived → search, same row) PASS,
+  search finds Jane + close restores the list PASS, archived reveal/hide PASS, Jane left
+  active, no overflow on desktop or mobile.
