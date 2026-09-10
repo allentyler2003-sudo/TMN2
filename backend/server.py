@@ -640,6 +640,33 @@ async def admin_archive_customer(customer_id: str, admin: dict = Depends(require
     return {"archived": archived}
 
 
+@api_router.delete("/admin/customers/{customer_id}")
+async def admin_delete_customer(customer_id: str, admin: dict = Depends(require_admin)):
+    """Permanently remove a client and everything attached to them (chat,
+    jobs, notes, invoices, looks, colours). Test accounts and unwanted
+    sign-ups can be cleared out for real."""
+    from bson import ObjectId
+
+    try:
+        oid = ObjectId(customer_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Customer not found")
+    c = await db.users.find_one({"_id": oid, "role": "customer"})
+    if not c:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    cid = str(oid)
+    await db.messages.delete_many({"customer_id": cid})
+    await db.invoices.delete_many({"customer_id": cid})
+    await db.jobs.delete_many({"customer_id": cid})
+    await db.notes.delete_many({"customer_id": cid})
+    await db.saved_looks.delete_many({"user_id": cid})
+    await db.custom_colours.delete_many({"user_id": cid})
+    await db.favourite_colours.delete_many({"user_id": cid})
+    await db.payment_transactions.delete_many({"$or": [{"customer_id": cid}, {"user_id": cid}]})
+    await db.users.delete_one({"_id": oid})
+    return {"ok": True}
+
+
 @api_router.get("/admin/messages")
 async def admin_messages(customer_id: str, admin: dict = Depends(require_admin)):
     docs = await db.messages.find({"customer_id": customer_id}).sort("created_at", 1).to_list(1000)
@@ -672,10 +699,23 @@ async def admin_stats(admin: dict = Depends(require_admin)):
     total_row = await db.site_views.aggregate([{"$group": {"_id": None, "views": {"$sum": "$views"}}}]).to_list(1)
     week_ago_iso = (now - timedelta(days=7)).isoformat()
     days_14 = [(now - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(13, -1, -1)]
-    docs_14 = {d["day"]: d.get("views", 0) for d in await db.site_views.find({"day": {"$in": days_14}}).to_list(20)}
-    daily_views = [{"day": day, "views": docs_14.get(day, 0)} for day in days_14]
+    docs_14 = {d["day"]: d for d in await db.site_views.find({"day": {"$in": days_14}}).to_list(20)}
+    signups_by_day = {day: 0 for day in days_14}
+    async for u in db.users.find({"role": "customer", "created_at": {"$gte": days_14[0]}}, {"created_at": 1}):
+        day = (u.get("created_at") or "")[:10]
+        if day in signups_by_day:
+            signups_by_day[day] += 1
+    daily = [
+        {
+            "day": day,
+            "views": (docs_14.get(day) or {}).get("views", 0),
+            "visitors": len((docs_14.get(day) or {}).get("visitors", [])),
+            "signups": signups_by_day[day],
+        }
+        for day in days_14
+    ]
     return {
-        "daily_views": daily_views,
+        "daily": daily,
         "customers": await db.users.count_documents({"role": "customer"}),
         "customers_new_7d": await db.users.count_documents(
             {"role": "customer", "created_at": {"$gte": week_ago_iso}}

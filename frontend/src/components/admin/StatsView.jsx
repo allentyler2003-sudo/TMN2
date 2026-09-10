@@ -1,19 +1,28 @@
+import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Eye, Heart, Sparkles, Users } from "lucide-react";
+
+/* each stat card clicks through to chart ITS series over the last 14 days */
+const METRICS = {
+    views: { key: "views", label: "site views" },
+    visitors: { key: "visitors", label: "unique visitors" },
+    signups: { key: "signups", label: "new accounts" },
+};
 
 /* Admin stats: site views, customer account quantity and the colours
    clients have favourited in the visualiser. */
 export default function StatsView({ stats, favourites }) {
+    const [metric, setMetric] = useState("views");
     const cards = [
-        { label: "Site views — all time", value: stats ? stats.views_total : null, icon: Eye, testid: "stat-views-total" },
-        { label: "Views today", value: stats ? stats.views_today : null, icon: Eye, testid: "stat-views-today" },
-        { label: "Views this week", value: stats ? stats.views_7d : null, icon: Eye, testid: "stat-views-week" },
-        { label: "Unique visitors this week", value: stats ? stats.visitors_7d : null, icon: Users, testid: "stat-visitors-week" },
-        { label: "Customer accounts", value: stats ? stats.customers : null, icon: Users, testid: "stat-customers-total" },
-        { label: "New accounts this week", value: stats ? stats.customers_new_7d : null, icon: Sparkles, testid: "stat-customers-new" },
+        { label: "Site views — all time", value: stats ? stats.views_total : null, icon: Eye, testid: "stat-views-total", metric: "views" },
+        { label: "Views today", value: stats ? stats.views_today : null, icon: Eye, testid: "stat-views-today", metric: "views" },
+        { label: "Views this week", value: stats ? stats.views_7d : null, icon: Eye, testid: "stat-views-week", metric: "views" },
+        { label: "Unique visitors this week", value: stats ? stats.visitors_7d : null, icon: Users, testid: "stat-visitors-week", metric: "visitors" },
+        { label: "Customer accounts", value: stats ? stats.customers : null, icon: Users, testid: "stat-customers-total", metric: "signups" },
+        { label: "New accounts this week", value: stats ? stats.customers_new_7d : null, icon: Sparkles, testid: "stat-customers-new", metric: "signups" },
     ];
 
-    const maxViews = stats && stats.daily_views ? Math.max(...stats.daily_views.map((d) => d.views)) : 0;
+    const maxViews = stats && stats.daily ? Math.max(...stats.daily.map((d) => d.views)) : 0;
 
     return (
         <div className="space-y-12" data-testid="admin-stats-view">
@@ -27,11 +36,16 @@ export default function StatsView({ stats, favourites }) {
                     </h1>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {cards.map(({ label, value, icon: Icon, testid }) => (
-                        <div
+                    {cards.map(({ label, value, icon: Icon, testid, metric: m }) => (
+                        <button
                             key={testid}
                             data-testid={testid}
-                            className="rounded-3xl border border-ink/10 bg-white/85 p-6 shadow-[0_10px_30px_rgba(10,10,10,0.05)]"
+                            data-metric={m}
+                            onClick={() => setMetric(m)}
+                            title={`Chart ${METRICS[m].label} over the last 14 days`}
+                            className={`rounded-3xl border border-ink/10 p-6 text-left shadow-[0_10px_30px_rgba(10,10,10,0.05)] transition-all duration-300 hover:-translate-y-0.5 ${
+                                metric === m ? "bg-white ring-2 ring-[#C6A55C]" : "bg-white/85 hover:bg-white"
+                            }`}
                         >
                             <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink/55">
                                 <Icon className="h-3.5 w-3.5" /> {label}
@@ -39,7 +53,10 @@ export default function StatsView({ stats, favourites }) {
                             <p className="mt-3 font-display text-5xl font-extrabold tracking-tight">
                                 {stats ? value.toLocaleString() : "—"}
                             </p>
-                        </div>
+                            <p className={`mt-2 font-mono text-[9px] font-bold uppercase tracking-[0.15em] ${metric === m ? "text-[#C6A55C]" : "text-ink/35"}`}>
+                                {metric === m ? "■ Charting now" : "□ Tap to chart"}
+                            </p>
+                        </button>
                     ))}
                 </div>
 
@@ -48,8 +65,8 @@ export default function StatsView({ stats, favourites }) {
                     data-testid="stats-chart"
                 >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink/55">
-                            Site views — last 14 days
+                        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink/55" data-testid="stats-chart-title">
+                            {METRICS[metric].label} — last 14 days
                         </p>
                         {maxViews === 0 && (
                             <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-ink/40">
@@ -59,7 +76,7 @@ export default function StatsView({ stats, favourites }) {
                     </div>
                     <div className="mt-4 h-56 w-full sm:h-64">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={stats ? stats.daily_views : []} margin={{ top: 4, right: 4, bottom: 0, left: -18 }}>
+                            <BarChart data={stats ? stats.daily : []} margin={{ top: 4, right: 4, bottom: 0, left: -18 }}>
                                 <CartesianGrid stroke="rgba(10,10,10,0.07)" vertical={false} />
                                 <XAxis
                                     dataKey="day"
@@ -83,10 +100,10 @@ export default function StatsView({ stats, favourites }) {
                                         fontFamily: "monospace",
                                         fontSize: 11,
                                     }}
-                                    formatter={(v) => [v + " views", null]}
+                                    formatter={(v) => [`${v} ${METRICS[metric].key}`, null]}
                                     labelFormatter={(d) => "Day " + d.slice(8, 10) + "/" + d.slice(5, 7)}
                                 />
-                                <Bar dataKey="views" fill="#C6A55C" radius={[6, 6, 0, 0]} maxBarSize={26} data-testid="stats-chart-bars" />
+                                <Bar dataKey={METRICS[metric].key} fill="#C6A55C" radius={[6, 6, 0, 0]} maxBarSize={26} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>

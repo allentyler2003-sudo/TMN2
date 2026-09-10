@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Archive, ArchiveRestore, Check, Pencil, Pin, ReceiptText, X } from "lucide-react";
+import { Archive, ArchiveRestore, Check, Pencil, Pin, ReceiptText, Trash2, X } from "lucide-react";
 import { API_BASE, formatApiError, useAuth } from "@/context/AuthContext";
 import ChatTab from "@/components/admin/ChatTab";
 import JobsTab from "@/components/admin/JobsTab";
@@ -25,6 +25,7 @@ export default function Admin() {
     const [nameDraft, setNameDraft] = useState("");
     const [favourites, setFavourites] = useState(null);
     const [showArchived, setShowArchived] = useState(false);
+    const [deleteArmedId, setDeleteArmedId] = useState(null);
 
     const loadCustomers = async () => {
         try {
@@ -73,6 +74,17 @@ export default function Admin() {
     }, []);
 
     const active = customers.find((c) => c.id === activeId);
+
+    const deleteCustomer = async (c) => {
+        try {
+            await axios.delete(`${API_BASE}/admin/customers/${c.id}`, { withCredentials: true });
+            setCustomers((cs) => cs.filter((x) => x.id !== c.id));
+            setDeleteArmedId(null);
+            if (activeId === c.id) setActiveId(null);
+        } catch (err) {
+            setError(formatApiError(err.response?.data?.detail));
+        }
+    };
 
     const toggleArchive = async (c) => {
         try {
@@ -331,6 +343,23 @@ export default function Admin() {
                                                     }`}
                                                 >
                                                     {c.archived ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5 text-ink/50" />}
+                                                </button>
+                                                <button
+                                                    data-testid={`admin-delete-${c.email}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (deleteArmedId === c.id) deleteCustomer(c);
+                                                        else setDeleteArmedId(c.id);
+                                                    }}
+                                                    onBlur={() => setDeleteArmedId((id) => (id === c.id ? null : id))}
+                                                    title={deleteArmedId === c.id ? "Tap again to permanently delete" : "Delete client permanently"}
+                                                    className={`rounded-full border p-1.5 font-mono text-[8px] font-bold transition-colors ${
+                                                        deleteArmedId === c.id
+                                                            ? "border-red-600 bg-red-600 px-2 text-paper"
+                                                            : "border-ink/20 hover:border-red-600"
+                                                    }`}
+                                                >
+                                                    {deleteArmedId === c.id ? "SURE?" : <Trash2 className="h-3.5 w-3.5 text-ink/50" />}
                                                 </button>
                                             </div>
                                         </div>

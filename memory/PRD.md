@@ -574,3 +574,18 @@ as a general background with scroll animations. Iterated direction (latest wins)
   PageTracker (StrictMode dev double-mounts were double-counting views; production builds
   unaffected). TESTED: chart renders desktop + mobile over the holo, tooltip works, counts
   increment +1 per page load after dedupe (418→420 across 2 navigations), no overflow.
+
+- OWNER: CLICKABLE STAT CHARTS + DELETE CLIENT + LOOKTEST CLEANUP (2026-09-10) — "click
+  each stat to change the chart for each stat; what is Look Tester, cannot remove". DONE:
+  (1) All six stat cards are now clickable — views cards chart SITE VIEWS/day, the visitors
+  card charts UNIQUE VISITORS/day (per-day visitor counts), the account cards chart NEW
+  ACCOUNTS/day (signups from created_at); gold "■ CHARTING NOW" state on the active card +
+  "□ TAP TO CHART" hint on others; chart title + tooltips follow the metric. Backend
+  /api/admin/stats returns one combined daily[] series (views/visitors/signups × 14 days).
+  FIXED during build: chart read the old daily_views key → blank chart; switched to daily.
+  (2) Look Tester was a leftover TEST account from development — deleted via the new
+  DELETE /admin/customers/{id} endpoint (cascade: messages, invoices, jobs, notes, looks,
+  colours, payments). Admin client rows now have a two-tap delete (bin → red "SURE?" →
+  gone) alongside pin/archive. (3) Housekeeping: looktest + throwaway test accounts purged;
+  Jane restored to active. TESTED: metric switching (titles + rings + bars) PASS on
+  desktop, delete arm/confirm/remove PASS, no overflow.
