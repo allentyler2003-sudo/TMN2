@@ -4,12 +4,12 @@ import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
 import {
     ChevronsLeftRight, Download, Layers, Mail, Paintbrush, RefreshCw, Share2, Sparkles,
-    Upload, Wand2, Undo2, Eraser, Wand, Bookmark, Trash2, X,
+    Upload, Wand2, Undo2, Eraser, Bookmark, Trash2, X,
 } from "lucide-react";
 import { waLink } from "@/constants/site";
 import { FadeUp, EASE } from "@/components/Reveal";
 import {
-    recolourLayers, detectWallMask, drawColourWheel, hexToHsv, hsvToHex,
+    recolourLayers, drawColourWheel, hexToHsv, hsvToHex,
     hexToRgb, rgbToLab, regionFromPoint, isValidHex, normaliseHex, makeThumb,
 } from "@/lib/colour";
 
@@ -233,7 +233,7 @@ export default function ColourStudio() {
     const [emailState, setEmailState] = useState(null);
     const [emailing, setEmailing] = useState(false);
     const [strokes, setStrokes] = useState(0);
-    const [autoDone, setAutoDone] = useState({ walls: false });
+    const [tapCount, setTapCount] = useState(0);
     const [savedLooks, setSavedLooks] = useState(() => loadSavedLooks());
     const [showSaved, setShowSaved] = useState(false);
     const [savedFlash, setSavedFlash] = useState("");
@@ -244,7 +244,7 @@ export default function ColourStudio() {
     const imgRef = useRef(null);
     const drawing = useRef(false);
     const strokesRef = useRef({ walls: [] });
-    const autoMaskRef = useRef({ walls: null });
+    const tapMaskRef = useRef({ walls: null });
 
     const redraw = () => {
         const canvas = canvasRef.current;
@@ -259,8 +259,8 @@ export default function ColourStudio() {
         const scale = canvas.width / (canvas.getBoundingClientRect().width || 1);
         for (const kind of ["walls"]) {
             const col = SURFACES[kind].stroke;
-            if (autoMaskRef.current[kind]) {
-                ctx.drawImage(autoMaskRef.current[kind], 0, 0, canvas.width, canvas.height);
+            if (tapMaskRef.current[kind]) {
+                ctx.drawImage(tapMaskRef.current[kind], 0, 0, canvas.width, canvas.height);
             }
             ctx.strokeStyle = col;
             ctx.lineCap = "round";
@@ -301,14 +301,14 @@ export default function ColourStudio() {
             // tap-to-select: the tapped surface joins the active layer's mask
             const pos = getPos(e);
             const region = regionFromPoint(imgRef.current, pos.x, pos.y, activeLayer);
-            if (!autoMaskRef.current[activeLayer]) {
+            if (!tapMaskRef.current[activeLayer]) {
                 const mc = document.createElement("canvas");
                 mc.width = imgRef.current.naturalWidth;
                 mc.height = imgRef.current.naturalHeight;
-                autoMaskRef.current[activeLayer] = mc;
+                tapMaskRef.current[activeLayer] = mc;
             }
-            autoMaskRef.current[activeLayer].getContext("2d").drawImage(region, 0, 0);
-            setAutoDone((s) => ({ ...s, [activeLayer]: true }));
+            tapMaskRef.current[activeLayer].getContext("2d").drawImage(region, 0, 0);
+            setTapCount((c) => c + 1);
             redraw();
             return;
         }
@@ -336,30 +336,14 @@ export default function ColourStudio() {
         setResult(null);
         setEmailState(null);
         strokesRef.current = { walls: [] };
-        autoMaskRef.current = { walls: null };
-        setAutoDone({ walls: false });
+        tapMaskRef.current = { walls: null };
+        setTapCount(0);
         setStrokes(0);
         try {
             setImage(await fileToDataUrl(file));
         } catch {
             setError("That image could not be read — try a different photo.");
         }
-    };
-
-    const autoDetect = () => {
-        if (!imgRef.current) return;
-        try {
-            const m = detectWallMask(imgRef.current, activeLayer);
-            if (!m) {
-                setError(`Couldn't spot the ${SURFACES[activeLayer].label.toLowerCase()} automatically — brush over them instead.`);
-                return;
-            }
-            autoMaskRef.current[activeLayer] = m;
-            setAutoDone((s) => ({ ...s, [activeLayer]: true }));
-        } catch {
-            setError("Auto-detect couldn't read this photo — brush the area instead.");
-        }
-        redraw();
     };
 
     const undo = () => {
@@ -369,8 +353,8 @@ export default function ColourStudio() {
 
     const clearBrush = () => {
         strokesRef.current[activeLayer] = [];
-        autoMaskRef.current[activeLayer] = null;
-        setAutoDone((s) => ({ ...s, [activeLayer]: false }));
+        tapMaskRef.current[activeLayer] = null;
+        setTapCount(0);
         redraw();
     };
 
@@ -383,10 +367,10 @@ export default function ColourStudio() {
     const generate = () => {
         if (!image || !imgRef.current) return;
         const layers = ["walls"]
-            .filter((k) => strokesRef.current[k].length || autoMaskRef.current[k])
+            .filter((k) => strokesRef.current[k].length || tapMaskRef.current[k])
             .map((kind) => ({ kind, hex: layerColours[kind].hex }));
         if (!layers.length) {
-            setError("Tap “Detect walls” or brush over the area you'd like repainted first.");
+            setError("Tap a surface or brush over the area you'd like repainted first.");
             return;
         }
         setError("");
@@ -599,7 +583,7 @@ export default function ColourStudio() {
                                         <div className="grid grid-cols-2 gap-2.5">
                                             {Object.entries(SURFACES).map(([kind, s]) => {
                                                 const active = activeLayer === kind;
-                                                const done = autoDone[kind] || strokesRef.current[kind].length > 0;
+                                                const done = tapCount > 0 || strokesRef.current[kind].length > 0;
                                                 return (
                                                     <button
                                                         key={kind}
@@ -629,18 +613,6 @@ export default function ColourStudio() {
 
                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                                         <button
-                                            data-testid="colour-auto-detect"
-                                            onClick={autoDetect}
-                                            className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] transition-colors ${
-                                                autoDone[activeLayer]
-                                                    ? "border-[#C6A55C] bg-[#C6A55C]/10 text-ink"
-                                                    : "border-ink/30 text-ink hover:border-ink hover:bg-ink hover:text-paper"
-                                            }`}
-                                        >
-                                            <Wand className="h-3.5 w-3.5" />
-                                            {autoDone[activeLayer] ? `${SURFACES[activeLayer].label} detected` : `Detect ${SURFACES[activeLayer].label.toLowerCase()}`}
-                                        </button>
-                                        <button
                                             data-testid="colour-brush-undo"
                                             onClick={undo}
                                             className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink/60 hover:text-ink"
@@ -658,11 +630,6 @@ export default function ColourStudio() {
                                             {strokes} {strokes === 1 ? "stroke" : "strokes"}
                                         </span>
                                     </div>
-                                    {autoDone[activeLayer] && (
-                                        <p className="rounded-xl bg-[#C6A55C]/10 p-3 font-mono text-[10px] font-medium leading-relaxed text-ink/70" data-testid="colour-auto-status">
-                                            {SURFACES[activeLayer].label} detected automatically — brush to add or fix areas, then pick a colour.
-                                        </p>
-                                    )}
 
                                     <div>
                                         <div className="mb-2 flex items-center justify-between gap-3">
@@ -1022,7 +989,7 @@ export default function ColourStudio() {
                                         <Sparkles className="h-9 w-9 text-ink/40" strokeWidth={1.25} />
                                     </div>
                                     <p className="max-w-[280px] text-sm font-medium leading-relaxed text-ink/55">
-                                        Your before &amp; after appears here — tap “Detect walls”,
+                                        Your before &amp; after appears here — tap a wall,
                                         pick a colour and drag the slider to reveal your newly
                                         painted home.
                                     </p>

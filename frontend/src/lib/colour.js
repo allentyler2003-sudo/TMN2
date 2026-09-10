@@ -327,7 +327,7 @@ function growWallParts(d, W, H) {
    seed, so walls, doors, window frames, kitchen units and ceilings are all
    selectable. Returns a full-size canvas painted in the layer's mask colour. */
 export function regionFromPoint(img, xFrac, yFrac, kind = "walls") {
-    const W = 384;
+    const W = 512;
     const H = Math.max(1, Math.round((W * img.naturalHeight) / img.naturalWidth));
     const small = document.createElement("canvas");
     small.width = W;
@@ -336,22 +336,47 @@ export function regionFromPoint(img, xFrac, yFrac, kind = "walls") {
     sctx.imageSmoothingEnabled = true;
     sctx.drawImage(img, 0, 0, W, H);
     const d = sctx.getImageData(0, 0, W, H).data;
-    const smooth = new Float32Array(W * H * 4);
+    // TWO smoothing rounds: gravel, stone and render texture average away
+    // into flat colour while true boundaries (wall/sky, wall/door) survive —
+    // so the edge barrier below is one continuous line the fill can't sneak
+    // through, and it sits exactly on the real boundary
+    let smooth = new Float32Array(W * H * 4);
+    const blurred = new Float32Array(W * H * 4);
+    for (let i = 0; i < W * H; i++) {
+        smooth[i * 4] = d[i * 4];
+        smooth[i * 4 + 1] = d[i * 4 + 1];
+        smooth[i * 4 + 2] = d[i * 4 + 2];
+    }
+    for (let pass = 0; pass < 2; pass++) {
+        for (let y = 0; y < H; y++) {
+            for (let x = 0; x < W; x++) {
+                const i = y * W + x;
+                let r = 0, g = 0, b = 0, n = 0;
+                for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) {
+                    const nx = x + dx, ny = y + dy;
+                    if (nx >= 0 && nx < W && ny >= 0 && ny < H) {
+                        const p = ny * W + nx;
+                        r += smooth[p * 4]; g += smooth[p * 4 + 1]; b += smooth[p * 4 + 2];
+                        n++;
+                    }
+                }
+                blurred[i * 4] = r / n;
+                blurred[i * 4 + 1] = g / n;
+                blurred[i * 4 + 2] = b / n;
+            }
+        }
+        smooth.set(blurred);
+    }
+    // edge barrier: the fill may not cross a strong local edge — it stops
+    // exactly at the true boundary of the tapped surface (straight edges by
+    // construction) and can never wander through textured ground like gravel
+    const barrier = new Uint8Array(W * H);
     for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
             const i = y * W + x;
-            let r = 0, g = 0, b = 0, n = 0;
-            for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) {
-                const nx = x + dx, ny = y + dy;
-                if (nx >= 0 && nx < W && ny >= 0 && ny < H) {
-                    const p = ny * W + nx;
-                    r += d[p * 4]; g += d[p * 4 + 1]; b += d[p * 4 + 2];
-                    n++;
-                }
-            }
-            smooth[i * 4] = r / n;
-            smooth[i * 4 + 1] = g / n;
-            smooth[i * 4 + 2] = b / n;
+            const gx = x + 1 < W ? Math.abs(smooth[(i + 1) * 4] - smooth[i * 4]) + Math.abs(smooth[(i + 1) * 4 + 1] - smooth[i * 4 + 1]) + Math.abs(smooth[(i + 1) * 4 + 2] - smooth[i * 4 + 2]) : 0;
+            const gy = y + 1 < H ? Math.abs(smooth[(i + W) * 4] - smooth[i * 4]) + Math.abs(smooth[(i + W) * 4 + 1] - smooth[i * 4 + 1]) + Math.abs(smooth[(i + W) * 4 + 2] - smooth[i * 4 + 2]) : 0;
+            barrier[i] = gx + gy > 30 ? 1 : 0;
         }
     }
     const sx = Math.min(W - 1, Math.max(0, Math.round(xFrac * (W - 1))));
@@ -368,7 +393,7 @@ export function regionFromPoint(img, xFrac, yFrac, kind = "walls") {
             const nx = x + dx, ny = y + dy;
             if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
             const ni = ny * W + nx;
-            if (inMask[ni]) continue;
+            if (inMask[ni] || barrier[ni]) continue;
             const localDiff =
                 Math.abs(smooth[ni * 4] - smooth[cur * 4]) +
                 Math.abs(smooth[ni * 4 + 1] - smooth[cur * 4 + 1]) +
@@ -385,8 +410,11 @@ export function regionFromPoint(img, xFrac, yFrac, kind = "walls") {
             }
         }
     }
-    // two hole-filling rounds: painted render never leaves speckles
-    for (let pass = 0; pass < 2; pass++) {
+    // straighten the boundary: majority-filter rounds pull staircase steps
+    // into straight lines along real edges — a pixel only joins on a strict
+    // majority of neighbours, so the mask never creeps past a boundary —
+    // and thin jagged speckles get pruned
+    for (let pass = 0; pass < 4; pass++) {
         const changes = [];
         for (let y = 0; y < H; y++) {
             for (let x = 0; x < W; x++) {
@@ -399,7 +427,7 @@ export function regionFromPoint(img, xFrac, yFrac, kind = "walls") {
                     total++;
                     if (inMask[ny * W + nx]) neighbours++;
                 }
-                if (total && (inMask[i] ? neighbours < 3 : neighbours > total * 0.62)) changes.push([i, !inMask[i]]);
+                if (total && (inMask[i] ? neighbours < 3 : neighbours * 2 > total)) changes.push([i, !inMask[i]]);
             }
         }
         for (const [i, v] of changes) inMask[i] = v ? 1 : 0;

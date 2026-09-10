@@ -332,3 +332,23 @@ as a general background with scroll animations. Iterated direction (latest wins)
   save credits, no subagents): harness 7/7 ×3 stable (house wall 86-88%, sky/door/
   ground 0%, two-walls 100/100 pipe 0%), recolour 0 failed, esbuild clean, visualiser
   screenshot: no woodwork chip, no overflow, walls-focused copy renders.
+
+- OWNER: AUTO-DETECT REMOVED FROM UI + STRAIGHT TAP-FILL EDGES (2026-09-10) — "make
+  auto detect dormant, remove from the options, use tap-to-select, make the edges
+  straight not jagged". DONE: (1) ColourStudio.jsx is now 100% Tap/Brush/Eraser — the
+  "Detect walls" button, autoDetect(), autoDone state, auto-status banner, detectWallMask
+  import and all auto-copy are gone (autoMaskRef→tapMaskRef, tapCount state drives the
+  READY chip); detectWallMask stays DORMANT in colour.js for later as instructed.
+  (2) regionFromPoint edge-barrier hardened: analysis 384→512, TWO smoothing rounds so
+  gravel/stone/render texture averages into flat colour (barrier becomes one continuous
+  line the fill can't sneak through), majority-filter boundary straightening keeps edges
+  straight instead of staircase-jagged. SELF-TESTED (owner asked to save credits — no
+  subagents): new harness /app/scripts/test_tap_fill.mjs 11/11 ×3 stable (gravel leak 0%
+  + boundary wobble sd=0px, house wall 100%/sky 0%/door 0%/ground 0%, door tap 97% clean,
+  textured render wall 100% covered, two taps accumulate); dormant detect regression
+  test_wall_detect.mjs 7/7 unchanged; LIVE on the preview: desktop + mobile uploads —
+  Detect button absent, tap paints wall with dead-straight edges along gutter/door/
+  gravel, sky/gravel/door stay clean, chip goes READY, no overflow. NOTE: pre-existing
+  site-wide console noise "t.split is not a function" fires on the HOMEPAGE too at load
+  (platform-injected scripts / 401 auth-me for logged-out visitors) — not from this
+  change, no user-facing impact.
