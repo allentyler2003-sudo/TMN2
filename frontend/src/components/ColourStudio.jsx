@@ -4,7 +4,7 @@ import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
 import {
     ChevronsLeftRight, Download, Layers, Mail, Paintbrush, RefreshCw, Share2, Sparkles,
-    Upload, Wand2, Undo2, Eraser, Bookmark, Trash2, X,
+    Upload, Wand2, Undo2, Eraser, Bookmark, Trash2, X, MousePointerClick,
 } from "lucide-react";
 import { waLink } from "@/constants/site";
 import { FadeUp, EASE } from "@/components/Reveal";
@@ -217,7 +217,7 @@ export default function ColourStudio() {
     const [image, setImage] = useState(null);
     const [brushSize, setBrushSize] = useState(26);
     const [eraseMode, setEraseMode] = useState(false);
-    const [tapMode, setTapMode] = useState(false);
+    const [tapMode, setTapMode] = useState(true);
     const [brand, setBrand] = useState("popular");
     const [activeLayer, setActiveLayer] = useState("walls");
     const [layerColours, setLayerColours] = useState({
@@ -554,6 +554,12 @@ export default function ColourStudio() {
                                 </label>
                             ) : (
                                 <div className="space-y-6">
+                                    <div className="flex items-start gap-2.5 rounded-xl bg-[#C6A55C]/10 px-4 py-3" data-testid="colour-guide">
+                                        <MousePointerClick className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink/60" />
+                                        <p className="text-xs font-medium leading-relaxed text-ink/70" data-testid="colour-guide-text">
+                                            For the best result tap each wall. Missed a patch? Tap it again — or switch to Brush to highlight it by hand.
+                                        </p>
+                                    </div>
                                     <div className="relative select-none overflow-hidden rounded-2xl ring-1 ring-ink/10">
                                         <img
                                             ref={imgRef}

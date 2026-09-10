@@ -352,3 +352,14 @@ as a general background with scroll animations. Iterated direction (latest wins)
   site-wide console noise "t.split is not a function" fires on the HOMEPAGE too at load
   (platform-injected scripts / 401 auth-me for logged-out visitors) — not from this
   change, no user-facing impact.
+
+- OWNER: TAP IS NOW THE DEFAULT TOOL + BRIEF GUIDE AT TOP (2026-09-10) — "tap to paint
+  working correctly, make it the preset function not the brush; add a very brief guide
+  at the top: for best results tap, if areas missed tap again or use brush to highlight".
+  DONE: tapMode defaults to true (Tap pill active on load, first tap paints with no mode
+  switch needed) + a one-line gold hint strip above the photo: "For the best result tap
+  each wall. Missed a patch? Tap it again — or switch to Brush to highlight it by hand"
+  (data-testid colour-guide / colour-guide-text, MousePointerClick icon). SELF-TESTED
+  (credit-light, screenshots only): desktop + mobile upload → guide renders, Tap pill
+  active by default, first-try tap painted the wall (overlay alpha 255; sky 0 / gravel 0),
+  chip flips to READY, no sideways overflow on either viewport.
