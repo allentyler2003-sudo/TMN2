@@ -438,3 +438,8 @@ as a general background with scroll animations. Iterated direction (latest wins)
   glassy bg-white/80 over the holo, hover → ink. Vital on mobile where the nav links are
   hidden. TESTED: button present + navigates to /favourites on desktop and mobile, no
   overflow.
+
+- OWNER: "FREE COLOUR ADVICE" BUTTON REMOVED (2026-09-10) — removed the WhatsApp
+  colour-advice anchor from the ColourTeaser card (unused waLink import cleaned up too).
+  The card now has just the gold "Open the visualiser" button + the top-10 pill beneath.
+  TESTED: gone on desktop + mobile, top-10 button unaffected, no overflow.

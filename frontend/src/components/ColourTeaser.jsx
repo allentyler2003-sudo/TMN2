@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, ArrowUpRight, Heart, Sparkles } from "lucide-react";
 import { FadeUp, EASE } from "@/components/Reveal";
-import { waLink } from "@/constants/site";
 
 export default function ColourTeaser() {
     return (
@@ -38,15 +37,6 @@ export default function ColourTeaser() {
                                 >
                                     Open the visualiser
                                     <ArrowUpRight className="h-4 w-4" />
-                                </a>
-                                <a
-                                    href={waLink("Hi TMN — I'd love some colour advice for my home.")}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    data-testid="colour-teaser-advice"
-                                    className="inline-flex items-center justify-center gap-2 rounded-full border border-paper/40 px-8 py-4 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-paper transition-colors hover:border-paper hover:bg-paper/10"
-                                >
-                                    Free colour advice
                                 </a>
                             </div>
                         </div>
