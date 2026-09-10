@@ -25,7 +25,6 @@ export default function Account() {
     const [paying, setPaying] = useState(null);
     const [error, setError] = useState("");
     const [banner, setBanner] = useState(null);
-    const bottomRef = useRef(null);
 
     const loadMessages = async () => {
         try {
@@ -96,9 +95,8 @@ export default function Account() {
         return () => clearInterval(id);
     }, []);
 
-    useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages.length]);
+    // NOTE: no auto-scroll — opening the chat keeps you at the top greeting;
+    // visitors scroll down to the conversation themselves
 
     const send = async (e) => {
         e.preventDefault();
@@ -301,7 +299,6 @@ export default function Account() {
                                         </p>
                                     </div>
                                 ))}
-                                <div ref={bottomRef} />
                             </div>
 
                             <form

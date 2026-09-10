@@ -530,3 +530,10 @@ as a general background with scroll animations. Iterated direction (latest wins)
   TESTED in browser: music kept playing across login (position 2.3→4.4→6.5, never reset),
   landed on homepage after login with MY ACCOUNT in nav, hard reload → first scroll
   resumed at ~4.4 (not 0), no overflow.
+
+- OWNER: CHAT OPENS AT TOP, NO AUTO-SCROLL (2026-09-10) — "when opening chat stay at the
+  top where it says hello, let the user scroll down to the chat rather than auto doing it".
+  DONE: removed the scrollIntoView-on-messages effect (and the unused bottomRef) from the
+  account portal — opening the page now rests on the "HELLO, {name}" greeting; visitors
+  scroll to the conversation themselves; incoming messages no longer yank the view.
+  TESTED: mobile — opens at scroll 0 with the greeting in view, no overflow.
