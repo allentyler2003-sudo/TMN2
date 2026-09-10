@@ -409,3 +409,10 @@ as a general background with scroll animations. Iterated direction (latest wins)
   toggle + sort ✓; browser desktop+mobile — holo renders on visualiser ✓, heart add/remove
   + persistence ✓, admin stats cards ✓, favourites row correct (Sage green #9CAF88 +
   client email) ✓, pin → PRIORITY badge + floats first ✓, no overflow.
+
+- OWNER: HOLO BACKGROUND ON THE ADMIN CONSOLE (2026-09-10) — "yes, the holo background on
+  the admin console". DONE: HoloBackground rendered on /admin (root bg-paper removed,
+  header+main wrapped in relative z-10, header frosted bg-paper/80 + backdrop-blur-md,
+  workspace card bg-white/70→85 for readability over the animation). Same video + CSS
+  fallback as home/visualiser. TESTED: browser desktop+mobile — holo video present behind
+  inbox + Stats views, cards readable, no overflow.

@@ -7,6 +7,7 @@ import JobsTab from "@/components/admin/JobsTab";
 import NotesTab from "@/components/admin/NotesTab";
 import InvoicesTab from "@/components/admin/InvoicesTab";
 import ClientsView from "@/components/admin/ClientsView";
+import HoloBackground from "@/components/HoloBackground";
 import StatsView from "@/components/admin/StatsView";
 
 const TABS = ["Chat", "Jobs", "Notes", "Invoices"];
@@ -105,8 +106,10 @@ export default function Admin() {
     };
 
     return (
-        <div className="min-h-screen bg-paper font-body text-ink">
-            <header className="border-b border-ink/10 bg-paper/85">
+        <div className="min-h-screen font-body text-ink">
+            <HoloBackground />
+            <div className="relative z-10">
+            <header className="border-b border-ink/10 bg-paper/80 backdrop-blur-md">
                 <div className="mx-auto flex h-24 max-w-[1500px] items-center justify-between px-5 sm:px-8">
                     <a href="/" data-testid="admin-home-link" className="flex items-center gap-3">
                         <img src="/logo-dark.png" alt="TMN logo" className="h-14 w-14 object-contain" />
@@ -278,7 +281,7 @@ export default function Admin() {
                             </div>
 
                             {/* workspace */}
-                            <div className="rounded-3xl border border-ink/10 bg-white/70 shadow-[0_24px_70px_rgba(10,10,10,0.10)]">
+                            <div className="rounded-3xl border border-ink/10 bg-white/85 shadow-[0_24px_70px_rgba(10,10,10,0.10)]">
                                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 px-6 py-4">
                                     <div>
                                         {editingName && active ? (
@@ -375,6 +378,7 @@ export default function Admin() {
                     </>
                 )}
             </main>
+            </div>
         </div>
     );
 }
