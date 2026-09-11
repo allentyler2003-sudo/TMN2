@@ -99,3 +99,8 @@ test_reports/
 # exceeds GitHub's 100MB file limit and would break the push)
 assets_raw/
 frontend/node_modules/.cache/default-development/6.pack
+.env.*
+*.env
+credentials.json
+*.key
+.credentials
