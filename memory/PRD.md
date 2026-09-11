@@ -724,3 +724,19 @@ as a general background with scroll animations. Iterated direction (latest wins)
   git tracks no .env; site + api 200; no large files near GitHub's 100MB cap.
   REPO NAME: user chooses it in the Save-to-GitHub dialog (Emergent pushes /app as one
   repo, node_modules/env excluded at platform level too).
+
+- CLOUDFLARE DEPLOYMENT SETTINGS (2026-09-11, VERIFIED BY ACTUAL BUILD not guessed):
+  ran CI=true REACT_APP_BACKEND_URL=https://api.your-domain.co.uk yarn build in
+  /app/frontend → "Compiled successfully" in 25s (no lint blockers under Cloudflare's
+  CI=true strict mode), build/ = 68MB (videos/audio/logos/sitemap.xml/robots.txt),
+  and the API URL verifiably baked into build/static/js/main.*.js (grep-confirmed).
+  EXACT PAGES SETTINGS: preset None (CRA preset also OK) · Root directory: frontend ·
+  Build command: yarn build · Output directory: build · Deploy command: NONE (Pages
+  Git integration auto-deploys; npx wrangler deploy is NOT used for Pages) · Env vars:
+  REACT_APP_BACKEND_URL=https://api.<domain> (REQUIRED — no /api proxy on Pages,
+  full URL mandatory) + NODE_VERSION=20. @emergentbase/visual-edits devDependency
+  confirmed harmless: public tarball (HTTP 200), production builds never load it
+  (craco.config.js only wires it when NODE_ENV != production), so GitHub installs work
+  and no Emergent build dependency exists. Backend CANNOT run on Cloudflare (FastAPI +
+  Mongo + PyTorch) → VPS + api subdomain per README §4; backend FRONTEND_URL must be
+  set to the Pages site origin for CORS + invoice email links.
