@@ -139,12 +139,18 @@ Cloudflare DNS
 └── api.your-domain.co.uk    → YOUR VPS          (FastAPI backend + MongoDB)
 ```
 
-**Frontend on Cloudflare Pages:**
+**Frontend on Cloudflare (Git integration — creates a Workers static-asset project):**
 1. Push this repo to GitHub (in Emergent: chat input → Save → "Save to GitHub").
-2. Cloudflare Dashboard → Workers & Pages → Create → Pages → Connect to Git → pick the repo.
-3. Build settings: Root directory `frontend`, build command `yarn build`, output dir `build`.
-4. Environment variables (Production): `REACT_APP_BACKEND_URL = https://api.your-domain.co.uk`.
-5. Add your custom domain in Pages → Custom domains.
+2. Cloudflare Dashboard → Workers & Pages → Create → Connect to Git → pick the repo.
+3. Build settings (Root directory `frontend`):
+   - Build command: `yarn build`
+   - Deploy command: `npx wrangler deploy`  (uses the included `frontend/wrangler.jsonc`,
+     which deploys the `build/` folder with SPA routing for deep links like /admin)
+4. Environment variables (Production): `REACT_APP_BACKEND_URL = https://api.your-domain.co.uk`
+   and `NODE_VERSION = 20`.
+5. Deploy, then attach your custom domain (Workers → your project → Domains & Routes).
+   Note: single assets must stay under 25 MiB — don't put large files in `frontend/public/`.
+   (If you use the classic Pages flow instead: no deploy command; output directory `build`.)
 
 **Backend on your own VPS (Hetzner/DigitalOcean ~£5-10/mo; 8 GB RAM if you want the AI
 assistant, 2 GB without):**

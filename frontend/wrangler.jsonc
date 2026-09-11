@@ -1,0 +1,12 @@
+// Cloudflare deployment config for the TMN website frontend.
+// Used by the Git-integration deploy command: `npx wrangler deploy`
+// Deploys the production build (./build) as a static-asset site with
+// SPA routing so deep links like /admin serve index.html correctly.
+{
+  "name": "tmn-website",
+  "compatibility_date": "2025-01-01",
+  "assets": {
+    "directory": "./build",
+    "not_found_handling": "single-page-application"
+  }
+}

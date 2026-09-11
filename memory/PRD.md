@@ -740,3 +740,20 @@ as a general background with scroll animations. Iterated direction (latest wins)
   and no Emergent build dependency exists. Backend CANNOT run on Cloudflare (FastAPI +
   Mongo + PyTorch) → VPS + api subdomain per README §4; backend FRONTEND_URL must be
   set to the Pages site origin for CORS + invoice email links.
+  set to the Pages site origin for CORS + invoice email links.
+
+- DEPLOY COMMAND FIX (2026-09-11, owner: "won't let me leave deploy command empty" —
+  Cloudflare's new Git flow requires one and creates a WORKERS static-asset project):
+  added /app/frontend/wrangler.jsonc (name tmn-website, assets.directory ./build,
+  not_found_handling single-page-application for SPA deep links). VERIFIED: npx wrangler
+  deploy --dry-run passes — "Read 38 files from the assets directory", build/ = 39MB
+  (videos/audio/logos all present). CAUGHT + FIXED: the 29MB backup zip in
+  frontend/public/ was copied into build/ by CRA and REJECTED by Cloudflare's 25MiB
+  per-asset cap ("Asset too large") — zip moved out of public/ to /app root, build
+  rebuilt clean, dry-run green. NOTE: the old ZIP download link is retired (GitHub repo
+  is the permanent backup now); refreshed 30MB zip lives at /app/tmn-website-backup-
+  2026-09-11.zip (wrangler.jsonc included). README §4 rewritten for the Workers flow:
+  root frontend, build `yarn build`, deploy `npx wrangler deploy`, env REACT_APP_BACKEND_URL
+  + NODE_VERSION=20; 25MiB per-asset warning added. FINAL ANSWER SETTINGS: Root
+  directory=frontend · Build command=yarn build · Deploy command=npx wrangler deploy ·
+  Env: REACT_APP_BACKEND_URL=https://api.<domain>, NODE_VERSION=20.
