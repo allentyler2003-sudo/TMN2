@@ -1214,6 +1214,26 @@ def _assert_safe_email(subject: str, html: str) -> None:
 
 async def send_email(*, to: str, subject: str, html: str, reply_to: str | None = None, attachments: list | None = None) -> str | None:
     _assert_safe_email(subject, html)
+    # SELF-HOSTED PATH — when the deployment runs on its own Resend account
+    # (own verified sending domain), no Emergent infrastructure is involved.
+    resend_key = os.environ.get("RESEND_API_KEY")
+    if resend_key and SENDER_EMAIL:
+        params = {
+            "from": f"{EMAIL_FROM_NAME} <{SENDER_EMAIL}>",
+            "to": [to], "subject": subject, "html": html,
+        }
+        if reply_to or EMAIL_REPLY_TO:
+            params["reply_to"] = reply_to or EMAIL_REPLY_TO
+        if attachments:
+            params["attachments"] = attachments
+        try:
+            resend.api_key = resend_key
+            result = await asyncio.to_thread(resend.Emails.send, params)
+            return (result or {}).get("id")
+        except Exception as e:
+            logger.error(f"Email send error (resend): {str(e)}")
+            raise HTTPException(status_code=502, detail="Failed to send email")
+    # EMERGENT MANAGED PATH — default inside the Emergent workspace
     payload = {"to": [to], "subject": subject, "html": html, "from_name": EMAIL_FROM_NAME}
     if reply_to or EMAIL_REPLY_TO:
         payload["contact_email"] = reply_to or EMAIL_REPLY_TO

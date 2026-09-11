@@ -703,24 +703,3 @@ as a general background with scroll animations. Iterated direction (latest wins)
   files (220 entries incl. dirs), zero node_modules/.env/.git/test_credentials inside,
   server.py md5-identical to live, download link 200 application/zip. Staging kept at
   /app/backup_staging/.
-- GITHUB-READY SELF-HOSTING PREP (2026-09-11, owner deploying via Cloudflare): (1) EMAIL
-  IS NOW EMERGENT-OPTIONAL — send_email() in server.py gained a self-hosted branch: when
-  RESEND_API_KEY is set, ALL transactional email (invoices with PDF + download button)
-  sends directly through the owner's own Resend account via the official SDK
-  (from = "EMAIL_FROM_NAME <SENDER_EMAIL>", attachments passed through); the Emergent
-  managed proxy stays as the fallback while the key is empty (workspace default, zero
-  behaviour change — verified: 8/8 unit checks both branches + form-gate + live proxy E2E
-  ALL PASS; scripts/test_email_selfhost.py). (2) WORKSPACE IS NOW THE REPO — deployment
-  kit moved INTO /app so "Save to GitHub" ships a complete project: /app/README.md (full
-  rewrite: stack, features, local dev, prod build, docker-compose, CLOUDFLARE section —
-  Pages for frontend + VPS for backend with api subdomain, honest "backend cannot run on
-  Cloudflare Workers"), /app/docker-compose.yml, /app/backend/Dockerfile +
-  .env.example, /app/frontend/Dockerfile + nginx.conf + .env.example, /app/database/
-  (mongodump + json + RESTORE.md, 876K), /app/docs/PRD.md. (3) .gitignore hardened:
-  .env files, backup_staging/, *.log, .ruff_cache/, test_reports/ AND assets_raw/
-  (260MB raw animation sources unused by the site — hero.mov is 117MB and would BREAK
-  the GitHub push, files >100MB rejected). (4) Refreshed backup ZIP now mirrors the
-  repo exactly (30MB, 234 files, md5-identical server.py, download link 200). Verified:
-  git tracks no .env; site + api 200; no large files near GitHub's 100MB cap.
-  REPO NAME: user chooses it in the Save-to-GitHub dialog (Emergent pushes /app as one
-  repo, node_modules/env excluded at platform level too).

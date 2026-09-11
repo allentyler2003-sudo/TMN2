@@ -86,4 +86,16 @@ frontend/node_modules/.cache/default-development/3.pack
 frontend/node_modules/.cache/default-development/8.pack
 frontend/node_modules/.cache/default-development/11.pack
 frontend/node_modules/.cache/default-development/12.pack
+
+# Self-hosting / GitHub hygiene
+.env
+backend/.env
+frontend/.env
+backup_staging/
+.ruff_cache/
+test_reports/
+*.log
+# raw animation source material (260MB, unused by the built site; hero.mov
+# exceeds GitHub's 100MB file limit and would break the push)
+assets_raw/
 frontend/node_modules/.cache/default-development/6.pack

@@ -1,0 +1,30 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    # NOTE: for a public production server, enable Mongo auth + a dedicated network,
+    # or use a managed MongoDB (e.g. Atlas) and point MONGO_URL at it.
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      # inside compose the API reaches Mongo via the service name
+      MONGO_URL: mongodb://mongo:27017
+    depends_on:
+      - mongo
+    # no public port — nginx proxies /api to this service
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
