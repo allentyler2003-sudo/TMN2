@@ -39,10 +39,23 @@ export default function Footer() {
                     </div>
                 </div>
 
-                <p className="mt-12 border-t border-ink/10 pt-6 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-ink/55">
-                    © {new Date().getFullYear()} {SITE.name} — Domestic &amp; commercial painting,
-                    decorating &amp; property maintenance
-                </p>
+                <div className="mt-12 border-t border-ink/10 pt-6">
+                    <div className="flex flex-wrap gap-x-6 gap-y-2 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-ink/55 sm:justify-end">
+                        <a href="/privacy-policy.html" data-testid="footer-privacy-link" className="transition-colors hover:text-ink">
+                            Privacy Policy
+                        </a>
+                        <a href="/cookie-policy.html" data-testid="footer-cookie-link" className="transition-colors hover:text-ink">
+                            Cookie Policy
+                        </a>
+                        <a href="/terms-and-conditions.html" data-testid="footer-terms-link" className="transition-colors hover:text-ink">
+                            Terms &amp; Conditions
+                        </a>
+                    </div>
+                    <p className="mt-4 font-mono text-[10px] font-medium uppercase tracking-[0.25em] text-ink/55">
+                        © {new Date().getFullYear()} {SITE.name} — Domestic &amp; commercial painting,
+                        decorating &amp; property maintenance
+                    </p>
+                </div>
             </div>
         </footer>
     );

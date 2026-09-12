@@ -757,3 +757,25 @@ as a general background with scroll animations. Iterated direction (latest wins)
   + NODE_VERSION=20; 25MiB per-asset warning added. FINAL ANSWER SETTINGS: Root
   directory=frontend · Build command=yarn build · Deploy command=npx wrangler deploy ·
   Env: REACT_APP_BACKEND_URL=https://api.<domain>, NODE_VERSION=20.
+
+- LEGAL PAGES + FOOTER LINKS (2026-09-11, owner: "Add three new static HTML pages …
+  Privacy Policy, Cookie Policy, Terms & Conditions … standard text … links in the
+  website footer"): created frontend/public/privacy-policy.html,
+  cookie-policy.html, terms-and-conditions.html — STANDALONE static HTML (deliberate:
+  user asked for static pages, and they survive any hosting incl. Cloudflare without SPA
+  routing), self-contained inline CSS in the TMN brand (ink #0d0d0d header, gold #C6A55C,
+  serif display, paper background), logo + "Back to site" → /, cross-links between pages,
+  real business details from src/constants/site.js (Plymouth, 07736 325643,
+  info@tmndecorating.co.uk — note owner typed "TMN Decoring"; used the correct real name).
+  Content: UK-GDPR privacy policy (portal account data, portal chat/images, visualiser
+  looks/favourites, Stripe payments, email provider, 6-yr records retention, ICO rights),
+  cookies policy (ONLY the strictly-necessary access/refresh httpOnly cookies — honest,
+  no ads/analytics), T&Cs (quotes 30 days, deposits, Stripe card payments, Late Payment
+  Act, 12-month workmanship guarantee, colour-matching caveat, photos-for-portfolio,
+  cooling-off, England & Wales). Footer.jsx bottom block restructured: legal links row
+  (data-testid footer-privacy-link / footer-cookie-link / footer-terms-link, mono
+  uppercase micro-type, hover states) above the © line. sitemap.xml gained the 3 URLs.
+  VERIFIED: all three pages HTTP 200 on the public preview, 8 sections render, no
+  overflow at 1440×900 or 390×844 (screenshots), footer hrefs programmatically confirmed
+  + mobile footer screenshot. Backup zip refreshed (3 new pages inside, 30MB). Pages
+  excluded from SPA — direct .html links work on Cloudflare Workers assets too.
