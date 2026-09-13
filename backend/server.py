@@ -274,9 +274,8 @@ async def logout(response: Response):
 
 @api_router.post("/auth/refresh")
 async def refresh(request: Request, response: Response):
+    print("INCOMING COOKIES:", request.cookies)
     token = request.cookies.get("refresh_token")
-    if not token:
-        raise HTTPException(status_code=401, detail="Missing refresh token")
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "refresh":
