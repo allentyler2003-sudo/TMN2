@@ -41,6 +41,13 @@ JWT_ALGORITHM = "HS256"
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 api_router = APIRouter(prefix="/api")
 
 logging.basicConfig(level=logging.INFO)
