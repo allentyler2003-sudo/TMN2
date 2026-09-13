@@ -249,7 +249,7 @@ async def login(input: LoginInput, request: Request, response: Response):
             upsert=True,
         )
         raise HTTPException(status_code=401, detail="Incorrect email or password")
-    await db.login_attempts.delete_many({"identifier": identifier})
+    set_auth_cookies(response, str(user["_id"]))
     set_auth_cookies(response, str(user["_id"]), email)
     return public_user(user)
 
