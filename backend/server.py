@@ -274,23 +274,25 @@ async def logout(response: Response):
 
 
 @api_router.post("/auth/refresh")
+@api_router.post("/auth/refresh")
 async def refresh(request: Request, response: Response):
     token = request.cookies.get("refresh_token")
     if not token:
-        raise HTTPException(status_code=401, detail="No refresh token")
+        raise HTTPException(status_code=401, detail="Missing refresh token")
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=401, detail="Invalid token type")
-        user = await db.users.find_one({"_id": __import__("bson").ObjectId(payload["sub"])})
+        
+        user_id = payload.get("sub")
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
-        set_auth_cookies(response, str(user["_id"]), user["email"])
+            
+        set_auth_cookies(response, str(user["_id"]), user.get("email", ""), user.get("role", "customer"))
         return public_user(user)
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Session expired, please log in again")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
 
 
 @api_router.get("/auth/me")
