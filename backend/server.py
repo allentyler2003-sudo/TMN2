@@ -227,12 +227,13 @@ async def register(input: RegisterInput, response: Response):
     )
     return public_user(doc)
 
-
 @api_router.post("/auth/login")
-async def login(input: LoginInput, request: Request, response: Response):
-    email = input.email.strip().lower()
-    identifier = f"{request.client.host}:{email}"
-    attempt = await db.login_attempts.find_one({"identifier": identifier})
+async def login(request: Request, response: Response):
+    body = await request.json()
+    email = body.get("email")
+    password = body.get("password")
+    identifier = email.lower() if email else "unknown"
+
     if attempt and attempt.get("locked_until"):
         locked_until = attempt["locked_until"]
         if isinstance(locked_until, str):
