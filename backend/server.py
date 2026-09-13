@@ -86,21 +86,22 @@ def set_auth_cookies(response: Response, user_id: str):
     access_token = create_access_token(user_id)
     refresh_token = create_refresh_token(user_id)
     response.set_cookie(
-        "access_token",
-        access_token,
+        key="access_token",
+        value=access_token,
         httponly=True,
         secure=True,
         samesite="none",
         path="/"
     )
     response.set_cookie(
-        "refresh_token",
-        refresh_token,
+        key="refresh_token",
+        value=refresh_token,
         httponly=True,
         secure=True,
         samesite="none",
         path="/"
     )
+    
 
 
 def public_user(user: dict) -> dict:
