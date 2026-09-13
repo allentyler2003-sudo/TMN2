@@ -249,10 +249,19 @@ async def login(request: Request, response: Response):
         )
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
+    user = await db.users.find_one({"email": email})
+    if not user or not verify_password(password, user["password_hash"]):
+        await db.login_attempts.update_one(
+            {"identifier": identifier},
+            {"$inc": {"count": 1}},
+            upsert=True
+        )
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
     await db.login_attempts.delete_many({"identifier": identifier})
     set_auth_cookies(response, str(user["_id"]), user.get("email", ""))
     return public_user(user)
-
+    
 
 @api_router.post("/auth/logout")
 async def logout(response: Response):
