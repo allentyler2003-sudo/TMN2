@@ -1,4 +1,4 @@
-import { Component, useEffect, useRef, useState } from "react";
+ import { Component, useEffect, useRef, useState } from "react";
 import Lenis from "lenis";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import axios from "axios";
@@ -25,7 +25,7 @@ import Login from "@/pages/Login";
 import Account from "@/pages/Account";
 import Admin from "@/pages/Admin";
 import Visualiser from "@/pages/Visualiser";
-
+axios.defaults.withCredentials = true;
 class ErrorBoundary extends Component {
     constructor(props) {
         super(props);
