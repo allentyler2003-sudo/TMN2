@@ -81,7 +81,6 @@ def create_token(user_id: str, email: str, token_type: str) -> str:
     payload = {"sub": user_id, "email": email, "type": token_type, "exp": exp}
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
-
 def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
     response.set_cookie(
         key="access_token",
