@@ -45,6 +45,9 @@ api_router = APIRouter(prefix="/api")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+@app.get("/")
+def read_root():
+    return {"status": "ok", "message": "Server is running"}
 
 
 # ---------- helpers ----------
