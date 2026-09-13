@@ -82,16 +82,14 @@ def create_token(user_id: str, email: str, token_type: str) -> str:
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
-def set_auth_cookies(response: Response, user_id: str, email: str = ""):
-    access_token = create_token(user_id, email, "access")
-    refresh_token = create_token(user_id, email, "refresh")
-    
+def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
     response.set_cookie(
         key="access_token",
         value=str(access_token),
         httponly=True,
         secure=True,
         samesite="none",
+        domain=".tmn-decorating.co.uk",
         path="/",
         max_age=3600
     )
@@ -101,6 +99,7 @@ def set_auth_cookies(response: Response, user_id: str, email: str = ""):
         httponly=True,
         secure=True,
         samesite="none",
+        domain=".tmn-decorating.co.uk",
         path="/",
         max_age=7 * 24 * 3600
     )
