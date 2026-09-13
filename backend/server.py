@@ -271,7 +271,7 @@ async def logout(response: Response):
     return {"ok": True}
 
 
-@api_router.post("/auth/refresh")
+
 @api_router.post("/auth/refresh")
 async def refresh(request: Request, response: Response):
     token = request.cookies.get("refresh_token")
