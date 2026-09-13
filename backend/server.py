@@ -236,9 +236,9 @@ async def login(request: Request, response: Response):
     email = body.get("email")
     password = body.get("password")
     identifier = email.lower() if email else "unknown"
-attempt = await db.login_attempts.find_one({"identifier": identifier})
+    attempt = await db.login_attempts.find_one({"identifier": identifier})
+
     if attempt and attempt.get("locked_until"):
-        locked_until = attempt["locked_until"]
         if isinstance(locked_until, str):
             locked_until = datetime.fromisoformat(locked_until)
         if locked_until > datetime.now(timezone.utc):
