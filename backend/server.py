@@ -82,11 +82,25 @@ def create_token(user_id: str, email: str, token_type: str) -> str:
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
-def set_auth_cookies(response: Response, user_id: str, email: str):
-    response.set_cookie("access_token", create_token(user_id, email, "access"),
-                        httponly=True, secure=True, samesite="none", max_age=900, path="/")
-    response.set_cookie("refresh_token", create_token(user_id, email, "refresh"),
-                        httponly=True, secure=True, samesite="none", max_age=604800, path="/")
+def set_auth_cookies(response: Response, user_id: str):
+    access_token = create_access_token(user_id)
+    refresh_token = create_refresh_token(user_id)
+    response.set_cookie(
+        "access_token",
+        access_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        path="/"
+    )
+    response.set_cookie(
+        "refresh_token",
+        refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        path="/"
+    )
 
 
 def public_user(user: dict) -> dict:
