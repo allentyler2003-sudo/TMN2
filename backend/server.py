@@ -1545,13 +1545,24 @@ async def root():
 
 app.include_router(api_router)
 
+frontend_url = os.environ.get("FRONTEND_URL", "https://tmn-decorating.co.uk").rstrip("/")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=[FRONTEND_URL, "http://localhost:3000"],
+    allow_origins=[
+        frontend_url,
+        "https://tmn-decorating.co.uk",
+        "https://www.tmn-decorating.co.uk",
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+    
+
 
 
 @app.on_event("startup")
