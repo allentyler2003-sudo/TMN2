@@ -262,7 +262,7 @@ async def login(request: Request, response: Response):
     access_token = create_token(user["email"], token_type="access")
     refresh_token = create_token(user["email"], token_type="refresh")
     set_auth_cookies(response, access_token, refresh_token)
-    return public_user(user)
+    return public_user(user) 
     
 
 @api_router.post("/auth/logout")
