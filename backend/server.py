@@ -104,7 +104,6 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
     )
     
 
-
 def public_user(user: dict) -> dict:
     return {
         "id": str(user["_id"]),
