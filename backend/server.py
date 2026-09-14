@@ -258,7 +258,7 @@ async def login(request: Request, response: Response):
         )
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-            await db.login_attempts.delete_many({"identifier": identifier})
+        await db.login_attempts.delete_many({"identifier": identifier})
     access_token = create_token(user["email"], token_type="access")
     refresh_token = create_token(user["email"], token_type="refresh")
     set_auth_cookies(response, access_token, refresh_token)
